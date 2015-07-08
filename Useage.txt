@@ -1,0 +1,38 @@
+====================================================================
+
+Copyright (C) 2015 Wouter Van den Broek, Xiaoming Jiang
+
+This file is part of FDES.
+
+FDES is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+FDES is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with FDES. If not, see <http://www.gnu.org/licenses/>.
+
+Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
+       xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com
+
+====================================================================
+
+ 
+Usage: 
+                        [ --input_name <string specifying the source of simulation parameters(.cnf, .emd or .qsc file)> ] 
+                        [ --image_name <string specifying the name of simulated images>                                 ]
+                        [ --emd_name   <string specifying the name of generated emd files>                              ]
+                        [ --print_level <Flag indicating the level of output >                                          ] 
+                                       <default 0 output images>  
+                                       <1 output images and potential slices>
+                                       <2 output images, potential slices and exit waves> 
+                        [ --gpu_index  <Flag indicating the device ID of GPU >                                          ] 
+                                       <default 0, change it for multiple CUDA-capable GPUs configuration if necessary>    
+                        [ --help       <Flag outputting  the usage   of FDES >                                          ] 
+                        [ --version    <Flag indicating the version  of FDES >                                          ] 
+ 

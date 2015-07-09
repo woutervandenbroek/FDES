@@ -120,14 +120,9 @@ Address: Institut for Experimentel Physics
   click the button "Generate" to generate the project file.
   
   enter the folder "FDES". Open "ALL_BUILD.vcproj" file and build the project. "FDES.exe" would appear in "bin" folder after successful compiling operations.
+   
   
-    
-  
-  
-  
-  
-  
-  Possible errors and notice:
+  3. Possible errors and notice:
   
   Linux
   1. " error: identifier "__float128" is undefined "  This could be solved by changing fftw3.h from
@@ -167,6 +162,9 @@ Address: Institut for Experimentel Physics
   5. "The program can't start because XX.dll is missing from your computer." 
   This error could be solved by placing the missing dll files into the same folder or manually setting the project environment to the correct path.
 
+  
+  6. python support
+  FDES kernal can be executed from python command by the use of ctypes module. A detailed example, pyFDES.py file, could be found in the "python" sub-folder. Notice this example is verified under linux system, and for windows users it might report some unkown errors.
   
   
   

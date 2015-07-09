@@ -26,18 +26,7 @@
 cmake_minimum_required(VERSION 2.4)
 
 project(FDES_SHARED_LIB_SHARED_LIB)
-# set(CMAKE_BUILD_TYPE Release)# set(CMAKE_BUILD_TYPE Debug)
-# set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-# 
-# find_package(HDF5 REQUIRED)    
-# find_package(fftw3 REQUIRED)
-# find_package(CUDA REQUIRED)
-# find_package(Boost REQUIRED)
-# 
-# include(${CMAKE_MODULE_PATH}/CheckComputeCapability.cmake)
-# string(REPLACE " " ";" CUDA_CAPABILITY_LIST ${CUDA_CAPABILITY_INFO})
-# 
+
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 if (CMAKE_BUILD_TYPE MATCHES Release)
         if (MSVC)
@@ -70,11 +59,6 @@ else ()
             list(APPEND CUDA_NVCC_FLAGS -Xcompiler;-g;)
         endif ()
 endif ()
-# foreach(cuda_gpu ${CUDA_CAPABILITY_LIST}) 
-# list(APPEND CUDA_NVCC_FLAGS "-gencode ${cuda_gpu}")
-# endforeach(cuda_gpu)
-
-
 
 FILE(GLOB FDES_SHARED_LIB_CU_FILES "${CMAKE_SOURCE_DIR}/src/complexMath.cu" "${CMAKE_SOURCE_DIR}/src/crystalMaker.cu" "${CMAKE_SOURCE_DIR}/src/FDESExport.cu" "${CMAKE_SOURCE_DIR}/src/multisliceSimulation.cu" "${CMAKE_SOURCE_DIR}/src/optimFunctions.cu"  "${CMAKE_SOURCE_DIR}/src/paramStructure.cu"  "${CMAKE_SOURCE_DIR}/src/projectedPotential.cu" "${CMAKE_SOURCE_DIR}/src/rwHdf5.cu"  "${CMAKE_SOURCE_DIR}/src/rwQsc.cu" "${CMAKE_SOURCE_DIR}/src/*.cpp")
 FILE(GLOB FDES_SHARED_LIB_H_FILES "${CMAKE_SOURCE_DIR}/include/*.h")

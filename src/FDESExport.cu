@@ -56,8 +56,8 @@ float * potential = NULL;
 float * exitwave = NULL;
 
 
-extern "C" {__declspec(dllexport)
-void FDES (int gpu_Index, int print_Level, char * input_name, char * image_name, char * emd_save_name, float * atomsArray, int numAtoms, float * dstImage)
+extern "C" { 
+  void FDES (int gpu_Index, int print_Level, char * input_name, char * image_name, char * emd_save_name, float * atomsArray, int numAtoms, float * dstImage)
 {
 	/**********************************************************
 	*  show License of FDES

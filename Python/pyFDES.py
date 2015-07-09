@@ -27,11 +27,18 @@ import numpy as np
 import ctypes
 import scanf
 from ctypes import *
+from sys import platform as _platform
+
 
 def cuda_FDES(gpu_Index, print_Level, input_name, image_name, emd_save_name, pointerAtomsArray, numAtoms, pointerImagesArray):
+  print _platform
+  if _platform == "linux" or _platform == "linux2":
+     FDES_dll = ctypes.CDLL('libFDES_SHARED_LIB.so', mode=ctypes.RTLD_GLOBAL)  
+  elif _platform == "win32":
     FDES_dll = ctypes.CDLL('FDES_SHARED_LIB.dll', mode=ctypes.RTLD_GLOBAL)
-    func = FDES_dll.FDES
-    return func(gpu_Index, print_Level, input_name, image_name, emd_save_name, pointerAtomsArray, numAtoms, pointerImagesArray)
+    
+  func = FDES_dll.FDES
+  return func(gpu_Index, print_Level, input_name, image_name, emd_save_name, pointerAtomsArray, numAtoms, pointerImagesArray)
 
 f = open('dataFDES.cnf', 'r')
 contents = f.read()

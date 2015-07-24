@@ -24,7 +24,8 @@ along with FDES. If not, see <http://www.gnu.org/licenses/>.
 Associated article: 
 W. Van den Broek, X. Jiang, C.T. Koch. FDES, a GPU-based multislice 
 algorithm with increased effciency of the computation of the 
-projected potential. Ultramicroscopy (2015).
+projected potential. Ultramicroscopy (2015). 
+doi:10.1016/j.ultramic.2015.07.005
 
 Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
        xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com

@@ -22,6 +22,7 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 
 ==================================================================*/
 
+
 #include "complexMath.h"
 
 
@@ -132,11 +133,11 @@ __global__ void multiplyElementwiseFast ( cufftComplex* f0, cufftComplex* f1, in
 __global__ void sumElements_d( cuComplex* dst, cuComplex* src, cuComplex thold, int sizeSrc, const int flag, const float mu0 )
 {
 	// flag == 0 for regular sum, 
-	// flag == 1 for the sum of the absolute values
+	// flag == 1 for the um of the absolute values
 	// flag == 2 for the sum of thresholded values
 	// flag == 3 for the sum of thresholded absolute values
 
-	extern __shared__ cuComplex sum[];
+	extern __shared__ cuDoubleComplex sum[];
 	int i = blockIdx.x*blockDim.x + threadIdx.x;
 	
 	if ( i < sizeSrc )
@@ -144,45 +145,45 @@ __global__ void sumElements_d( cuComplex* dst, cuComplex* src, cuComplex thold, 
 		if ( flag == 3 ) // A sum of thresholded absolute values
 		{
 			if ( absoluteValue( src[i].x, mu0 ) < thold.x )
-			{    sum[threadIdx.x].x = 1.f; }
+			{    sum[threadIdx.x].x = 1.0; }
 			else
-			{    sum[threadIdx.x].x = 0.f; }
+			{    sum[threadIdx.x].x = 0.0; }
 
 			if ( absoluteValue( src[i].y, mu0 ) < thold.y )
-			{    sum[threadIdx.x].y = 1.f; }
+			{    sum[threadIdx.x].y = 1.0; }
 			else
-			{    sum[threadIdx.x].y = 0.f; }
+			{    sum[threadIdx.x].y = 0.0; }
 		}
 		else { if ( flag == 2 ) // A sum of thresholded values
 		{    
 			if ( src[i].x < thold.x )
-			{    sum[threadIdx.x].x = 1.f; }
+			{    sum[threadIdx.x].x = 1.0; }
 			else
-			{    sum[threadIdx.x].x = 0.f; }
+			{    sum[threadIdx.x].x = 0.0; }
 
 			if ( src[i].y < thold.y )
-			{    sum[threadIdx.x].y = 1.f; }
+			{    sum[threadIdx.x].y = 1.0; }
 			else
-			{    sum[threadIdx.x].y = 0.f; }
+			{    sum[threadIdx.x].y = 0.0; }
 		}
 		else { if ( flag == 1) // it's a sum of absolute values
 		{
-			sum[threadIdx.x].x = absoluteValue( src[i].x, mu0 );
-			sum[threadIdx.x].y = absoluteValue( src[i].y, mu0 );
+			sum[threadIdx.x].x = (double) absoluteValue( src[i].x, mu0 );
+			sum[threadIdx.x].y = (double) absoluteValue( src[i].y, mu0 );
 		}
 		else // if flag == 0 it's a normal sum
 		{    
-			sum[threadIdx.x].x = src[i].x;
-			sum[threadIdx.x].y = src[i].y;
+			sum[threadIdx.x].x = (double) src[i].x;
+			sum[threadIdx.x].y = (double) src[i].y;
 		} } }
 	}
 	else
 	{    
-		sum[threadIdx.x].x = 0.f;
-		sum[threadIdx.x].y = 0.f;
+		sum[threadIdx.x].x = 0.0;
+		sum[threadIdx.x].y = 0.0;
 	}
 	__syncthreads ();
-
+	
 	int n = blockDim.x/2;
 	while ( n > 1 )
 	{
@@ -197,10 +198,35 @@ __global__ void sumElements_d( cuComplex* dst, cuComplex* src, cuComplex thold, 
 
 	if ( threadIdx.x == 0 )
 	{	
-		dst[blockIdx.x].x = sum[0].x + sum[1].x;
-		dst[blockIdx.x].y = sum[0].y + sum[1].y;
+		dst[blockIdx.x].x = (float) ( sum[0].x + sum[1].x );
+		dst[blockIdx.x].y = (float) ( sum[0].y + sum[1].y );
 	}
 }
+
+
+/* __global__ void addDerivedAbsVals ( cuComplex* dst, cuComplex* src, float fctr, int size )
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ( i < 2 * size )
+    {
+        const int i0 = i / 2;
+
+        if ( ( i % 2 ) == 0 )
+        {
+            const float srcx = src[i0].x;
+			dst[i0].x += fctr * srcx / absoluteValue( srcx );
+        }
+        else
+        {
+            const float srcy = src[i0].y;
+			dst[i0].y += fctr * srcy / absoluteValue( srcy );
+        }
+    }
+} */
+
+/* __device__ float absoluteValue( float x )
+{    return ( sqrtf( x * x + 1e-8f ) ); } */
 
 
 __global__ void addDerivedAbsVals ( cuComplex* dst, cuComplex* src, float fctr, int size, float mu0 )
@@ -228,6 +254,28 @@ __global__ void addDerivedAbsVals ( cuComplex* dst, cuComplex* src, float fctr, 
 			dst[i0].y += fctr * mu0 * mu0 * srcy / absoluteValue( srcy, mu0 );
         }
     }
+}
+
+__global__ void devideByAbsValue_d( cuComplex* f, int size, float mu0 )
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ( i < size )
+    {
+        float g, mu1;
+		
+		g = f[i].x;
+		mu1 = mu0;
+		if ( ! ( g < 0.f ) )
+		{    mu1 = 1.f; }
+		f[i].x = mu1 * mu1 * g / absoluteValue( g, mu1 );
+
+		g = f[i].y;
+		mu1 = mu0;
+		if ( ! ( g < 0.f ) )
+		{    mu1 = 1.f; }
+		f[i].y = mu1 * mu1 * g / absoluteValue( g, mu1 );
+	}
 }
 
 
@@ -261,27 +309,33 @@ __global__ void myCaxpy ( cuComplex* y, cuComplex* x, cuComplex a, int size )
     }
 }
 
-
-__global__ void complex_magnitutude_square( cufftComplex *des, cufftComplex *src, int nSize )
+__global__ void upperThreshold ( cufftComplex* f, int size, float thrRe, float thrIm )
 {
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if ( i < nSize )
-	{
-		des[i].x =src[i].x*src[i].x+src[i].y*src[i].y ;
-		des[i].y = 0.f;
-	}
+    if ( i < size )
+    {
+		if ( f[i].x > thrRe )
+		{    f[i].x = thrRe; }
+
+		if ( f[i].y > thrIm )
+		{    f[i].y = thrIm; }
+    }
 }
 
 
-__global__ void memcpy_complex_d( cufftComplex *des, cufftComplex *src, int nSize )
+__global__ void	lowerThreshold ( cufftComplex* f, int size, float thrRe, float thrIm )
 {
-	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if ( i < nSize )
-	{
-		des[i] =src[i];
-	}
+    if ( i < size )
+    {
+		if ( f[i].x < thrRe )
+		{    f[i].x = thrRe; }
+
+		if ( f[i].y < thrIm )
+		{    f[i].y = thrIm; }
+    }
 }
 
 __global__ void copyCufftShift_dim1_d ( cufftComplex* f0, cufftComplex* f1, int dim1, int dim2, int n0, int offSet )
@@ -399,17 +453,6 @@ __global__ void cufftIShift2D_dim2_d ( cufftComplex* f1, cufftComplex* f0, int d
 	}
 }
 
-__global__ void addConstant_d ( cuComplex* f, cuComplex a, int size )
-{
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if ( i < size )
-    {
-		f[i].x += a.x;
-		f[i].y += a.y;
-	}
-}
-
 
 void realPart ( float* Vri, cufftComplex* V, int size )
 {
@@ -422,6 +465,27 @@ void imagPart ( float* Vri, cufftComplex* V, int size )
     for ( int i = 0; i < size; i++ )
     { Vri[i] =  V[i].y; }
 }
+
+
+float sumElementsF( float* V, const int size )
+{   
+	cuComplex dummyThold, sumV, *VComplex;
+	dummyThold.x = -FLT_MAX;
+	dummyThold.y = -FLT_MAX;
+	int sizeC;
+	sizeC = ( size + ( size%2 ) ) / 2 ;
+
+	cuda_assert( cudaMalloc( ( void** ) &VComplex, sizeC * sizeof( cuComplex ) ) );
+	initialValues <<< 2, 1 >>> ( &( VComplex[sizeC - 1] ), 1, 0.f, 0.f );
+	cuda_assert( cudaMemcpy( VComplex, V, size * sizeof( float ), cudaMemcpyDeviceToDevice ) );
+
+	sumV = sumElements_helper( VComplex, dummyThold, size, 0, 1.f ); // flag is 0 for a regular sum
+
+	cudaFree( VComplex );
+
+	return( sumV.x + sumV.y ); 
+}
+
 
 float sumElements(cuComplex* V, const int size)
 {   
@@ -485,25 +549,29 @@ cuComplex sumElements_helper( cuComplex* V, cuComplex thold, const int size, con
 	// flag == 2 for the sum of thresholded values
 	// flag == 3 for the sum of thresholded absolute values
 
-	const int bS = 128; // Make it high to reduce memory load (Maximum allowed on Tesla K20c: 1024). MUST be a power of 2 (for this application).
+	const int bS = 256; // Make it high to reduce memory load (Maximum allowed on Tesla K20c: 1024). MUST be a power of 2 (for this application).
 	int vecSize = size;
 	int sumSize0 = vecSize/bS + 1;
 	cuComplex *sum0;
 	cuda_assert( cudaMalloc( ( void** ) &sum0, sumSize0 * sizeof( cuComplex ) ) ); 
 
-	sumElements_d <<< sumSize0, bS, bS * sizeof( cuComplex ) >>> ( sum0, V, thold, vecSize, flag, mu0 );
+	sumElements_d <<< sumSize0, bS, bS * sizeof( cuDoubleComplex ) >>> ( sum0, V, thold, vecSize, flag, mu0 );
+	cuda_assert ( cudaDeviceSynchronize () );
 	
 	while( sumSize0 > 1 )
 	{
 		vecSize = sumSize0;
 		sumSize0 = sumSize0 / bS + 1; 
 		// use the regular sum ( flag == 0 ) here; the operation above has applied the abs val or the threshold already irreversibly to sum0
-		sumElements_d <<< sumSize0, bS, bS * sizeof( cuComplex ) >>> ( sum0, sum0, thold, vecSize, 0, 1.f );
+		sumElements_d <<< sumSize0, bS, bS * sizeof( cuDoubleComplex ) >>> ( sum0, sum0, thold, vecSize, 0, 1.f );
+		cuda_assert ( cudaDeviceSynchronize () );
 	}
 
 	cuComplex sum1;
 	cuda_assert( cudaMemcpy( &sum1, sum0, sizeof( cuComplex ), cudaMemcpyDeviceToHost ) );
+
 	cuda_assert( cudaFree( sum0 ) );
+	
 	return( sum1 );
 }
 

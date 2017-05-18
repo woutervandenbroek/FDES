@@ -27,7 +27,7 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 #include "projectedPotential.h"
 
 
-__global__ void projectedPotential_d ( cufftComplex* V, int Z,  params_t* params)// equation ??
+__global__ void projectedPotential_d ( cufftComplex* V, int Z,  params_t* params)
 {
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 	const int m1 = params->IM.m1;
@@ -39,8 +39,7 @@ __global__ void projectedPotential_d ( cufftComplex* V, int Z,  params_t* params
 	__shared__ float d[3];
 
 	if ( threadIdx.x < 12 )
-	{    
-	parametersKirkland_d ( a, b, c, d, Z, threadIdx.x ); }
+	{    parametersKirkland_d ( a, b, c, d, Z, threadIdx.x ); }
 	__syncthreads ();
 
 	if ( i < m1 * m2 )
@@ -53,11 +52,11 @@ __global__ void projectedPotential_d ( cufftComplex* V, int Z,  params_t* params
 		const float d1 = 1e10f * params->IM.d1;
 		const float d2 = 1e10f * params->IM.d2;
 
-		float qsq = ( (float) i1 ) / ( d1 * ( (float) m1 ) ); //
+		float qsq = ( (float) i1 ) / ( d1 * ( (float) m1 ) );
 		float Vz  = ( (float) i2 ) / ( d2 * ( (float) m2 ) );
 		qsq = qsq * qsq + Vz * Vz;
 
-		Vz  = a[0] / ( qsq + b[0] )  +  c[0] * expf( -d[0] * qsq ); // Unpacked for-loop, is a bit faster p. 250 of Kirkland's book, 
+		Vz  = a[0] / ( qsq + b[0] )  +  c[0] * expf( -d[0] * qsq ); // Unpacked for-loop, is a bit faster
 		Vz += a[1] / ( qsq + b[1] )  +  c[1] * expf( -d[1] * qsq );
 		Vz += a[2] / ( qsq + b[2] )  +  c[2] * expf( -d[2] * qsq );
 
@@ -82,14 +81,6 @@ __global__ void normalizeProjectedPotential_d ( cufftComplex* V, float V0x, int 
 
 }
 
-
-
-void normalizeProjectedPotential ( cufftComplex* V, int size, int gS, int bS )
-{
-	float V0x;
-	cuda_assert( cudaMemcpy ( &V0x, (float*) V, sizeof( float ), cudaMemcpyDeviceToHost ) ); // V0x = V[0].x
-	normalizeProjectedPotential_d <<< gS, bS >>> ( V, V0x, size );
-}
 
 __device__ void parametersKirkland_d ( float* a, float* b, float* c, float* d, int Z, int i )
 {
@@ -3007,5 +2998,181 @@ __device__ void parametersKirkland_d ( float* a, float* b, float* c, float* d, i
         {    c[2] = 1.0f; }
         if ( i == 11 )
         {    d[2] = 0.0f; }
-	} }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}} // Close all the else-if brackets
+	} }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}} // CLOSE ALL OF THE ELSE-IF BRACKETS!!! THIS ... IS ... SPAAAAAAAARTAAAAAAAAAAAAAAAAAAA!!!!!!!!!
+}
+
+
+void writeCode ()
+{
+	char* file_in = "kirk.txt";
+	char* file_out = "kirk_code.cnf";
+	FILE* fr;
+	FILE* fw;
+    const int size = 100;
+    char* line;
+    line = ( char* ) malloc ( size * sizeof ( char ) );
+
+	float *a, *b, *c, *d;
+	a = ( float* ) malloc ( 3 * sizeof( float ) );
+	b = ( float* ) malloc ( 3 * sizeof( float ) );
+	c = ( float* ) malloc ( 3 * sizeof( float ) );
+	d = ( float* ) malloc ( 3 * sizeof( float ) );
+
+	fr = fopen ( file_in, "rt" );
+    fw = fopen ( file_out, "wt" );
+	fclose ( fr );
+	fclose ( fw );
+	fr = fopen ( file_in, "rt" );
+    fw = fopen ( file_out, "wt" );
+
+	for (int Z = 1; Z < 104; Z++)
+	{
+		fgets ( line, size, fr );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & a[0], & b[0], & a[1], & b[1] );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & a[2], & b[2], & c[0], & d[0] );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & c[1], & d[1], & c[2], & d[2] );
+		
+		fprintf ( fw, "\n%s%i%s\n%s\n", "    if ( Z == ", Z, " )", "    {");
+		fprintf ( fw, "%s%15.8e%s%15.8e%s%15.8e%s%15.8e%s\n", "        a[0] = ", a[0], "f; b[0] = ", b[0], "f; a[1] = ", a[1], "f; b[1] = ", b[1], "f;");
+		fprintf ( fw, "%s%15.8e%s%15.8e%s%15.8e%s%15.8e%s\n", "        a[2] = ", a[2], "f; b[2] = ", b[2], "f; c[0] = ", c[0], "f; d[0] = ", d[0], "f;");
+		fprintf ( fw, "%s%15.8e%s%15.8e%s%15.8e%s%15.8e%s\n", "        c[1] = ", c[1], "f; d[1] = ", d[1], "f; c[2] = ", c[2], "f; d[2] = ", d[2], "f;");
+		fprintf ( fw, "%s\n", "    }" );
+
+	}
+
+	fclose ( fr );
+	fclose ( fw );
+
+    free ( line );
+	free( a );
+	free( b );
+	free( c );
+	free( d );
+}
+
+
+void writeMATLABCode ()
+{
+	char* file_in = "kirk.txt";
+	char* file_out = "kirk_MATLABcode.cnf";
+	FILE* fr;
+	FILE* fw;
+    const int size = 100;
+    char* line;
+    line = ( char* ) malloc ( size * sizeof ( char ) );
+
+	float *a, *b, *c, *d;
+	a = ( float* ) malloc ( 3 * sizeof( float ) );
+	b = ( float* ) malloc ( 3 * sizeof( float ) );
+	c = ( float* ) malloc ( 3 * sizeof( float ) );
+	d = ( float* ) malloc ( 3 * sizeof( float ) );
+
+	fr = fopen ( file_in, "rt" );
+    fw = fopen ( file_out, "wt" );
+	fclose ( fr );
+	fclose ( fw );
+	fr = fopen ( file_in, "rt" );
+    fw = fopen ( file_out, "wt" );
+
+	for (int Z = 1; Z < 104; Z++)
+	{
+		fgets ( line, size, fr );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & a[0], & b[0], & a[1], & b[1] );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & a[2], & b[2], & c[0], & d[0] );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & c[1], & d[1], & c[2], & d[2] );
+		
+		fprintf ( fw, "\n%s%i%s\n", "if ( Z == ", Z, " )");
+		fprintf ( fw, "%s%15.8e%s%15.8e%s%15.8e%s%15.8e%s\n", "    a(1,1,1) = ", a[0], "; b(1,1,1) = ", b[0], "; a(1,1,2) = ", a[1], "; b(1,1,2) = ", b[1], ";");
+		fprintf ( fw, "%s%15.8e%s%15.8e%s%15.8e%s%15.8e%s\n", "    a(1,1,3) = ", a[2], "; b(1,1,3) = ", b[2], "; c(1,1,1) = ", c[0], "; d(1,1,1) = ", d[0], ";");
+		fprintf ( fw, "%s%15.8e%s%15.8e%s%15.8e%s%15.8e%s\n", "    c(1,1,2) = ", c[1], "; d(1,1,2) = ", d[1], "; c(1,1,3) = ", c[2], "; d(1,1,3) = ", d[2], ";");
+		fprintf ( fw, "%s\n", "end" );
+
+	}
+
+	fclose ( fr );
+	fclose ( fw );
+
+    free ( line );
+	free( a );
+	free( b );
+	free( c );
+	free( d );
+}
+
+
+void writeDeviceCode ()
+{
+	char* file_in = "kirk.txt";
+	char* file_out = "kirk_devicecode.cnf";
+	FILE* fr;
+	FILE* fw;
+    const int size = 100;
+    char* line;
+    line = ( char* ) malloc ( size * sizeof ( char ) );
+
+	float *a, *b, *c, *d;
+	a = ( float* ) malloc ( 3 * sizeof( float ) );
+	b = ( float* ) malloc ( 3 * sizeof( float ) );
+	c = ( float* ) malloc ( 3 * sizeof( float ) );
+	d = ( float* ) malloc ( 3 * sizeof( float ) );
+
+	fr = fopen ( file_in, "rt" );
+    fw = fopen ( file_out, "wt" );
+	fclose ( fr );
+	fclose ( fw );
+	fr = fopen ( file_in, "rt" );
+    fw = fopen ( file_out, "wt" );
+
+	for (int Z = 1; Z < 104; Z++)
+	{
+		fgets ( line, size, fr );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & a[0], & b[0], & a[1], & b[1] );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & a[2], & b[2], & c[0], & d[0] );
+		fgets ( line, size, fr );
+		sscanf ( line, "%g %g %g %g", & c[1], & d[1], & c[2], & d[2] );
+		
+		fprintf ( fw, "\n%s%i%s\n%s\n", "    if ( Z == ", Z, " )", "    {");
+		fprintf ( fw, "%s",             "        if ( i == 0 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "a[0] = ", a[0], "f; }\n" );                    
+		fprintf ( fw, "%s",             "        if ( i == 1 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "b[0] = ", b[0], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 2 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "a[1] = ", a[1], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 3 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "b[1] = ", b[1], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 4 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "a[2] = ", a[2], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 5 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "b[2] = ", b[2], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 6 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "c[0] = ", c[0], "f; }\n" );                    
+		fprintf ( fw, "%s",             "        if ( i == 7 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "d[0] = ", d[0], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 8 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "c[1] = ", c[1], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 9 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "d[1] = ", d[1], "f; }\n" );
+		fprintf ( fw, "%s",             "        if ( i == 10 )\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "c[2] = ", c[2], "f; }\n" );
+		fprintf ( fw, "%s",             "        else\n        {    ");
+		fprintf ( fw, "%s%15.8e%s", "d[2] = ", d[2], "f; }\n" );
+		fprintf ( fw, "    }\n"); 
+	}
+
+	fclose ( fr );
+	fclose ( fw );
+
+    free ( line );
+	free( a );
+	free( b );
+	free( c );
+	free( d );
 }

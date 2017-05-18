@@ -42,17 +42,17 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 #include "globalVariables.h"
 
 
-/*__global__ void trialPotential ( cuComplex* V, params_t* params )
+__global__ void trialPotential ( cuComplex* V, params_t* params )
 {
     const int m1 = params->IM.m1;
     const int m2 = params->IM.m2;
     const int m3 = params->IM.m3;
     V[m3 * m1 * m2 / 2 + m1 * m2 / 2 + m1 / 2].x = 2.0f;
     V[m3 * m1 * m2 / 2 + m1 * m2 / 2 + m1 / 2].y = 0.1f;
-} */
+}
 
 
-/*__global__ void addConst ( cuComplex* dst, cuComplex cst, int size )
+__global__ void addConst ( cuComplex* dst, cuComplex cst, int size )
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -63,10 +63,10 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
         else
         { dst[i / 2].y += cst.y; }
     }
-}*/
+}
 
 
-/*__global__ void flipPotentialDevice ( cuComplex* V, cuComplex thold, int size )
+__global__ void flipPotentialDevice ( cuComplex* V, cuComplex thold, int size )
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -77,9 +77,9 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 		if ( V[i].y < thold.y )
 		{    V[i].y *= -1.f; }
 	}
-}*/
+}
 
-/*__global__ void flipPotentialAbsVals_d ( cuComplex* V, cuComplex thold, int size )
+__global__ void flipPotentialAbsVals_d ( cuComplex* V, cuComplex thold, int size )
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -90,10 +90,10 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 		if ( absoluteValueOF( V[i].y ) < thold.y )
 		{    V[i].y *= -1.f; }
 	}
-}*/
+}
 
 
-/*__global__ void applyThreshold_d ( cuComplex* V, cuComplex thold, int size )
+__global__ void applyThreshold_d ( cuComplex* V, cuComplex thold, int size )
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
     if ( i < size )
@@ -103,21 +103,20 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
         if ( V[i].y < thold.y )
         {    V[i].y = 0.f; }
     }
-}*/
+}
 
 
-__global__ void copyMiddleOut ( float* Imodel, cuComplex* I_d, params_t* params )
+__global__ void copyMiddleOut ( float* Imodel, cuComplex* psi, params_t* params )
 {
-    const int j = blockIdx.x * blockDim.x + threadIdx.x;
-    const int n1 = params->IM.n1;
+	const int j = blockIdx.x * blockDim.x + threadIdx.x;
+	const int n1 = params->IM.n1;
 
-    if ( j < n1 * params->IM.n2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, j, n1 );
-        const int m1 = params->IM.m1;
-        Imodel[j] = I_d[ i1 + params->IM.dn1 + m1 * ( i2 + params->IM.dn2 )].x;
-    }
+	if ( j < n1 * params->IM.n2 ) {
+		int i1, i2;
+		dbCoord ( i1, i2, j, n1 );
+		const int m1 = params->IM.m1;
+		Imodel[j] = psi[m1 * params->IM.m2 * ( params->IM.m3 + 3 ) + i1 + params->IM.dn1 + m1 * ( i2 + params->IM.dn2 )].x;
+	}
 }
 
 
@@ -136,25 +135,126 @@ __global__ void copyMiddleIn ( cuComplex* dE, float* Imodel, params_t* params )
 }
 
 
-/*__global__ void copyDefoci_d ( params_t* params, int k, float defocus_k )
+__global__ void copyDefoci_d ( params_t* params, int k, float defocus_k )
 {
 	// Call it with gridsize = 1 and blocksize = 1.
 	params->IM.defoci[k] = defocus_k;
-}*/
+}
 
 
-/*__global__ void copyTiltspec_d ( params_t* params, int k, float t0, float t1 )
+__global__ void copyTiltspec_d ( params_t* params, int k, float t0, float t1 )
 {
 	// Call it with gridsize = 1 and blocksize = 1.
 	params->IM.tiltspec[2*k] = t0;
 	params->IM.tiltspec[2*k + 1] = t1;
-}*/
+}
 
-/*__device__ float absoluteValueOF( float x )
-{    return ( sqrtf( x * x + 1e-8f ) ); }*/
+__device__ float absoluteValueOF( float x )
+{    return ( sqrtf( x * x + 1e-8f ) ); }
 
 
-/*void randShuffle ( int* t, int n )
+__global__ void limitDerivatives_d ( cufftComplex* dEdV, cufftComplex* V, int size, float thrLo, float thrHi )
+{
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ( i < size )
+    {
+        if ( ( V[i].y < thrLo ) && ( dEdV[i].y > 0.f ) )
+		{
+			dEdV[i].x = 0.f;
+			dEdV[i].y = 0.f;
+		}
+		if ( ( V[i].y > thrHi ) && ( dEdV[i].y < 0.f ) )
+		{
+			dEdV[i].x = 0.f;
+			dEdV[i].y = 0.f;
+		}
+    }
+}
+
+__global__ void signValues_d ( float* f, int size )
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	float eps = 1e-9f;
+
+    if ( i < size )
+	{    
+		if ( f[i] < -eps )
+		{    f[i] = -1.f; }
+		else { if ( f[i] > eps )
+		{    f[i] = 1.f; }
+		else
+		{    f[i] = 0.f; } }
+	}
+}
+
+__global__ void ringFilter_d ( cufftComplex* f, int dim1, int dim2 )
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if ( i < dim1 * dim2 )
+	{	  
+		int i1, i2;
+
+		f[i].x = 0.f;
+		f[i].y = 0.f;
+
+		dbCoord ( i1, i2, i, dim1 );
+		iwCoordIp ( i1, dim1 );
+		iwCoordIp ( i2, dim2 );
+
+		if ( i1 == -1 )
+        {
+            if ( i2 == -1 )
+            {    f[i].x =      -0.037608f ; }
+            if ( i2 == 0 )
+            {    f[i].x =      -0.249254f ; }
+            if ( i2 == 1 )
+            {    f[i].x =      -0.037608f ; }
+        }
+
+        if ( i1 == 0 )
+        {
+            if ( i2 == -1 )
+            {    f[i].x =      -0.249254f ; }
+            if ( i2 == 0 )
+            {    f[i].x =       1.147448f ; }
+            if ( i2 == 1 )
+            {    f[i].x =      -0.249254f ; }
+        }
+
+        if ( i1 == 1 )
+        {
+            if ( i2 == -1 )
+            {    f[i].x =      -0.037608f ; }
+            if ( i2 == 0 )
+            {    f[i].x =      -0.249254f ; }
+            if ( i2 == 1 )
+            {    f[i].x =      -0.037608f ; }
+        }
+
+		f[i].x /= ( (float) ( dim1 * dim2 ) );
+	}
+}
+
+__global__ void copySingle2Double ( double* fD, float* fS,  int size )
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ( i < size )
+	{    fD[i] = (double) fS[i];	}
+}
+
+__global__ void divideBySqrt_d ( float* f0, float* f1, int size )
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	const float eps = 1e-2f;
+
+    if ( i < size )
+	{    f0[i] /= sqrtf( fabsf( f1[i] ) + eps ); }
+}
+
+void randShuffle ( int* t, int n )
 {
     int c, s;
 
@@ -166,14 +266,14 @@ __global__ void copyMiddleIn ( cuComplex* dE, float* Imodel, params_t* params )
         t[i] = t[i + c];
         t[i + c] = s;
     }
-}*/
+}
 
 
-/*bool smallErrorDiff( float* E, int j )
+bool smallErrorDiff( float* E, int j )
 {
 	bool isSmall = false;
 
-	const float eps = 1e-4f;
+	const float eps = 1e-6f;
 	float varE = 0.f;
 	float temp;
 
@@ -193,10 +293,10 @@ __global__ void copyMiddleIn ( cuComplex* dE, float* Imodel, params_t* params )
 	}
 
 	return ( isSmall );
-}*/
+}
 
 
-/*void initialUniformPDD( cufftComplex* f_d, float a, float b, int size )
+void initialUniformPDD( cufftComplex* f_d, float a, float b, int size )
 {
 	// Initializes f_d with uniform random values between a and b, a < b.
 
@@ -216,9 +316,9 @@ __global__ void copyMiddleIn ( cuComplex* dE, float* Imodel, params_t* params )
 	cuda_assert ( cudaMemcpy ( f_d, f_h, size * sizeof ( cufftComplex ), cudaMemcpyHostToDevice ) );
 
 	free( f_h );
-}*/
+}
 
-/*void initialSparsePDD( cufftComplex* f_d, float b, params_t* params )
+void initialSparsePDD( cufftComplex* f_d, float b, params_t* params )
 {
 	// Initializes f_d with random values between 0 and b. The mean of this distribution equals 8*b times the density of FCC Au.
 
@@ -240,48 +340,63 @@ __global__ void copyMiddleIn ( cuComplex* dE, float* Imodel, params_t* params )
 
 	free( f_h );
 
-}*/
-
-// void consistentPfParams (params_t* params )
-// {
-// // 	params->RE.pftr0_x = 0.01f;
-// // 	params->RE.pftr0_y = 0.01f;
-// // 
-// // 	if ( params->RE.pftr < 0.001f )
-// // 	{    params->RE.pftr = 0.001f; }
-// // 
-// // 	if ( params->RE.pftr > 0.999f )
-// // 	{    params->RE.pftr = 0.999f; }
-// }
-
-void progressCounter(int j, int jTot)
-{
-    if ( (j == 0) && (jTot > 1) )
-	{   fprintf(stderr, " Progress: 0%%");}
-
-	const float frac = 100.f * ((float) j) / ((float) jTot);
-	const float incr = 100.1f / ((float) jTot);
-
-    for (float k = 1.f; k < 100.f; k++)
-    {
-        if ( (frac > k) && ( frac < ( k + incr ) ) )
-		{
-			if (k < 10.5f)
-			{	fprintf(stderr, "\b\b");}
-			else
-			{	fprintf(stderr, "\b\b\b");}
-            fprintf(stderr, "%i%%", (int) k);
-		}
-    }
-
-    if (j == (jTot-1))
-	{
-		fprintf(stderr, "\b\b\b");
-        fprintf(stderr, "%i%% ...\n", 100);
-	}
 }
 
-void initialPotential ( cufftComplex* V_d, params_t* params )
+void saveResults ( cufftComplex* V_d, float* E, float* L1, int j, params_t* params_d, int n3 )
+{
+ 	params_t* params;
+	allocParams ( &params, n3 );
+	getDeviceParams ( &params, &params_d, n3 );
+	setCufftPlan ( params );
+	setCublasHandle ( params );
+	
+	const int m123 = params->IM.m1 * params->IM.m2 * params->IM.m3;
+	cufftComplex* V_h;
+	V_h = ( cufftComplex* ) malloc ( m123 * sizeof ( cufftComplex ) );
+	cuda_assert ( cudaMemcpy ( V_h, V_d, m123 * sizeof ( cufftComplex ), cudaMemcpyDeviceToHost ) );
+	
+	float* Vri;
+	Vri = ( float* ) calloc ( m123, sizeof ( float ) );
+
+	realPart ( Vri, V_h, m123 );
+	writeBinary ( "PotentialReal.bin", Vri, m123 );
+
+	imagPart ( Vri, V_h, m123 );
+	writeBinary ( "PotentialImag.bin", Vri, m123 );
+	
+	free ( Vri );	
+	free ( V_h );
+	freeParams ( &params );
+} 
+
+int progressCounter(int j, params_t* params )
+{
+	int kR = 0, kP = 0;
+	int jTot = 0;
+	j += 1;
+	
+	jTot = params->IM.frPh; // Calculate total number of iterations
+	if ( jTot < 1 )	{   
+		jTot = 1; 
+	}
+	jTot *= params->SCN.o1 * params->SCN.o2 * params->IM.n3 * params->IM.m3;
+
+	kP = (int) roundf( ( ( (float) ( j - 1 ) ) / ( (float) jTot ) ) * 100.f );
+	kR = (int) roundf( ( ( (float) j ) / ( (float) jTot ) ) * 100.f );
+	if ( kP !=  kR ) { // Only print when there's a new percentage
+		if ( kR < 100 ) { // print three dots at 100% to indicate it's almost ready, but not quite yet
+			fprintf(stderr, "\r  Progress: %i%%", kR );
+		} else {
+			fprintf(stderr, "\r  Progress: 100%% ..." );
+		}
+	}
+	if ( j == jTot ) {
+		fprintf(stderr, "\n" );
+	}
+	return( j );
+}
+
+void readInitialPotential ( cufftComplex* V_d, params_t* params )
 {
     float* Vri;
     cufftComplex* V_h;
@@ -295,6 +410,69 @@ void initialPotential ( cufftComplex* V_d, params_t* params )
     { V_h[j].x = Vri[j]; }
 
     readBinary ( "PotentialInitImag.bin", Vri, size );
+
+    for ( int j = 0; j < size; j++ )
+    { V_h[j].y = Vri[j]; }
+
+    cuda_assert ( cudaMemcpy ( V_d, V_h, size * sizeof ( cufftComplex ), cudaMemcpyHostToDevice ) );
+
+    free ( Vri );
+    free ( V_h );
+}
+
+
+void readIncomingWave ( cufftComplex* V_d, int k, params_t* params )
+{
+    float* Vri;
+    cufftComplex* V_h;
+    const int size = params->IM.m1 * params->IM.m2;
+    Vri = ( float* ) malloc ( size * sizeof ( float ) );
+    V_h = ( cufftComplex* ) malloc ( size * sizeof ( cufftComplex ) );
+
+	if ( k == 0 )
+	{    readBinary ( "Illumination_real_1.bin", Vri, size ); }
+	if ( k == 1 )
+	{    readBinary ( "Illumination_real_2.bin", Vri, size ); }
+	if ( k == 2 )
+	{    readBinary ( "Illumination_real_3.bin", Vri, size ); }
+	if ( k == 3 )
+	{    readBinary ( "Illumination_real_4.bin", Vri, size ); }
+	if ( k == 4 )
+	{    readBinary ( "Illumination_real_5.bin", Vri, size ); }
+	if ( k == 5 )
+	{    readBinary ( "Illumination_real_6.bin", Vri, size ); }
+	if ( k == 6 )
+	{    readBinary ( "Illumination_real_7.bin", Vri, size ); }
+	if ( k == 7 )
+	{    readBinary ( "Illumination_real_8.bin", Vri, size ); }
+	if ( k == 8 )
+	{    readBinary ( "Illumination_real_9.bin", Vri, size ); }
+	if ( k == 9 )
+	{    readBinary ( "Illumination_real_10.bin", Vri, size ); }
+
+    for ( int j = 0; j < size; j++ )
+    { V_h[j].x = Vri[j]; }
+
+    if ( k == 0 )
+	{    readBinary ( "Illumination_imag_1.bin", Vri, size ); }
+	if ( k == 1 )
+	{    readBinary ( "Illumination_imag_2.bin", Vri, size ); }
+	if ( k == 2 )
+	{    readBinary ( "Illumination_imag_3.bin", Vri, size ); }
+	if ( k == 3 )
+	{    readBinary ( "Illumination_imag_4.bin", Vri, size ); }
+	if ( k == 4 )
+	{    readBinary ( "Illumination_imag_5.bin", Vri, size ); }
+	if ( k == 5 )
+	{    readBinary ( "Illumination_imag_6.bin", Vri, size ); }
+	if ( k == 6 )
+	{    readBinary ( "Illumination_imag_7.bin", Vri, size ); }
+	if ( k == 7 )
+	{    readBinary ( "Illumination_imag_8.bin", Vri, size ); }
+	if ( k == 8 )
+	{    readBinary ( "Illumination_imag_9.bin", Vri, size ); }
+	if ( k == 9 )
+	{    readBinary ( "Illumination_imag_10.bin", Vri, size ); }
 
     for ( int j = 0; j < size; j++ )
     { V_h[j].y = Vri[j]; }
@@ -328,5 +506,3 @@ bool isPowOfHalf( int it )
 
 	return( x );
 }
-
-

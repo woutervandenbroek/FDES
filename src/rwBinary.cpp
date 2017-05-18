@@ -26,21 +26,16 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 #include <stdlib.h>
 #include"paramStructure.h"
 
-void readBinary ( const char* filename, float* I, int size )
+void readBinary ( char* filename, float* I, int size )
 {
     FILE* fr;
     fr = fopen ( filename , "rb" );
 
-    size_t nread;
-    nread = fread ( ( void* ) I, sizeof ( float ), size, fr );
-    if(nread != (unsigned int) size )
-    {
-      exit(0);
-    }
+    fread ( ( void* ) I, sizeof ( float ), size, fr );
     fclose ( fr );
 }
 
-void writeBinary (const char* filename, float* f, int size )
+void writeBinary ( char* filename, float* f, int size )
 {
     FILE* fw;
     fw = fopen ( filename, "wb" );
@@ -49,7 +44,7 @@ void writeBinary (const char* filename, float* f, int size )
     fclose ( fw );
 }
 
-void appendBinary (const char* filename, float* f, int size )
+void appendBinary ( char* filename, float* f, int size )
 {
     FILE* fw;
     fw = fopen ( filename, "ab" );

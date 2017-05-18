@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with FDES. If not, see <http://www.gnu.org/licenses/>.
 
 Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
-       xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com 
+       xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com
 
 ===================================================================*/
 
@@ -29,7 +29,7 @@ __global__ void setupCurandState_d( curandState *state, int seed, int size )
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// Each thread gets same seed, a different sequence number, no offset 
+	// Each thread gets same seed, a different sequence number, no offset
     if ( i < size )
 	{    curand_init(seed, i, 0, &state[i]); }
 }
@@ -42,7 +42,7 @@ __global__ void atomJitter_d( float* xyz_d, float* dwf_d, int nAt, curandState *
 	{
 		curandState localState = state[i]; //Copy state to local memory for efficiency
 		float x = curand_normal ( &localState );
-		xyz_d[i] += x * 0.064974733f * sqrtf( dwf_d[i/3] ); // 0.065 = 1/(2*pi*sqrt(2*3)), divided by an extra sqrt(3) because <u*u> = <x*x + y*y + z*z> = 3*<x*x> = 3*<y*y> = 3*<z*z>
+		xyz_d[i] += x * 0.112539540f * sqrtf( dwf_d[i/3] ); // 0.11 = 1/(pi*sqrt(8))
 		state[i] = localState;  // Copy (modified) state back to global memory
 	}
 }
@@ -145,7 +145,7 @@ __global__ void divideBySinc ( cufftComplex* V, params_t* params )
 		dbCoord ( i1, i2, i, m1 );
         iwCoordIp ( i1, m1 );
         iwCoordIp ( i2, m2 );
-		
+
 		float y = params->cst.pi;
 		float x = ( (float) i1 ) / ( (float) m1 ) * y;
 		x  = ( x + FLT_EPSILON ) / ( sinf( x ) + FLT_EPSILON );
@@ -176,7 +176,7 @@ __global__ void memorySetZero_d ( cufftComplex* V, params_t* params )
   	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 	const int m1 = params->IM.m1;
 	const int m2 = params->IM.m2;
-	
+
 	if ( i < m1 * m2  )
 	{
 		V[i].x =0;
@@ -205,19 +205,19 @@ __global__ void areaWeighting ( cufftComplex* psi, cufftComplex* psi_gaussian, f
 void applyMaskFiltering( cufftComplex* psi, params_t* params, params_t* params_d )
 {
       const int m12 = params->IM.m1 * params->IM.m2;
-      
+
       float * mask;
       cufftComplex * gaussian, *psi_gaussian;
       cuda_assert ( cudaMalloc ( ( void** ) &mask,     m12 * sizeof ( cufftComplex ) ) );
-      cuda_assert ( cudaMalloc ( ( void** ) &gaussian, m12 * sizeof ( cufftComplex ) ) ); 
-      cuda_assert ( cudaMalloc ( ( void** ) &psi_gaussian, m12 * sizeof ( cufftComplex ) ) ); 
-      
+      cuda_assert ( cudaMalloc ( ( void** ) &gaussian, m12 * sizeof ( cufftComplex ) ) );
+      cuda_assert ( cudaMalloc ( ( void** ) &psi_gaussian, m12 * sizeof ( cufftComplex ) ) );
+
       areaMask <<< params->CU.gS, params->CU.bS >>> ( mask,  params_d );
-      
+
 	  initialValues <<< params->CU.gS * 2, params->CU.bS >>> ( gaussian, m12, 1.f, 0.f );
 
 	  areaWeighting <<< params->CU.gS, params->CU.bS>>>  ( psi, gaussian, mask, params_d);
-      
+
       cuda_assert ( cudaFree ( mask ) );
       cuda_assert ( cudaFree ( gaussian ) );
       cuda_assert ( cudaFree ( psi_gaussian ) );
@@ -225,17 +225,17 @@ void applyMaskFiltering( cufftComplex* psi, params_t* params, params_t* params_d
 
 
 void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DWF_d, float* occ_d, char * image_name, char * emd_name)
-{		
+{
 
-	
+
   	int nAt = (*params).SAMPLE.nAt;
 	int frPh = (*params).IM.frPh;
 	float pD = (*params).IM.pD;
 	float imPot =(*params).SAMPLE.imPot;
 	float subSlTh =(*params).IM.subSlTh;
-  
+
 	float *xyzCoordTO_d, *xyzCoordFP_d, *J_d;
-	cufftComplex *V_d, *I_d, *psi, *exitwave_d, *t, *frProp, *GP; 
+	cufftComplex *V_d, *I_d, *psi, *exitwave_d, *t, *frProp, *GP;
 
 	int count, n123, m12, m123, nZ, *Zlist, k;
 	curandState *dwfState_d, *poissonState_d;
@@ -251,26 +251,26 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 	m12 = params->IM.m1 * params->IM.m2;
 	m123 = params->IM.m1 * params->IM.m2 *params->IM.m3;
 	k = 0;
-		
+
 	cuda_assert ( cudaMalloc ( ( void** ) &xyzCoordTO_d, nAt * 3 * sizeof ( float ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &xyzCoordFP_d, nAt * 3 * sizeof ( float ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &V_d, m12 * sizeof ( cufftComplex ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &I_d, m12 * sizeof ( cufftComplex ) ) );
-	cuda_assert ( cudaMalloc ( ( void** ) &psi, m12 * sizeof ( cufftComplex ) ) );	
+	cuda_assert ( cudaMalloc ( ( void** ) &psi, m12 * sizeof ( cufftComplex ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &t,   m12 * sizeof ( cufftComplex ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &frProp, m12 * sizeof ( cufftComplex ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &GP,  m12 * sizeof ( cufftComplex ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &J_d, n123 * sizeof ( float ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &dwfState_d, 3 * nAt * sizeof( curandState ) ) );
 	cuda_assert ( cudaMalloc ( ( void** ) &poissonState_d, m12 * sizeof( curandState ) ) );
-	
+
 	if(printLevel >1)
 	{
-	  cuda_assert ( cudaMalloc ( ( void** ) &exitwave_d, m12 * sizeof ( cufftComplex ) ) );	
+	  cuda_assert ( cudaMalloc ( ( void** ) &exitwave_d, m12 * sizeof ( cufftComplex ) ) );
 	  exitwave = ( float* ) malloc (2* params->IM.n3* m12*  sizeof ( float ) );
-	  
+
 	}
-	
+
  	image = ( float* ) malloc ( n123*  sizeof ( float ) );
 	Zlist = ( int* ) malloc ( 103 * sizeof ( int ) );
 
@@ -278,16 +278,16 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
  	tOff[0] = (*params).IM.specimen_tilt_offset_x;
 	tOff[1] = (*params).IM.specimen_tilt_offset_y;
 	tOff[2] = (*params).IM.specimen_tilt_offset_z;
-	
+
 	cublas_assert ( cublasScopy ( params->CU.cublasHandle, nAt * 3, xyzCoord_d, 1, xyzCoordTO_d, 1 ) );
 	tiltCoordinates( xyzCoordTO_d, nAt, tOff[0], tOff[1], tOff[2], params ); // Create coordinates with the tilt offset.
 
 	nZ = listOfElements( Zlist, nAt, Z_d );
-	
+
 	fprintf (stderr, " Number of elements in the specimen: %d \n ",nZ );
 
 	setCufftPlanBatch( &cufftPlanBatch, params );
-	
+
 	if ( frPh > 0 )
 	{    setupCurandState_d <<< myGSize( 3 * nAt ), myBSize( 3 * nAt ) >>> ( dwfState_d, 1, 3 * nAt ); }
 
@@ -298,7 +298,7 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 	{   count = frPh; }
 
 	int j,s;
-	
+
  	cufftComplex alpha;
 	alpha.x = 1.f / ( (float) count );
 	alpha.y = 0.f;
@@ -309,10 +309,10 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 	case 0:
 		sprintf(IM_mode ,"TEM Imaging");
 		break;
-	case 1: 
+	case 1:
 		sprintf(IM_mode ,"DP");
 		break;
-	case 2: 
+	case 2:
 		sprintf(IM_mode ,"CBED");
 		break;
 	default:
@@ -320,7 +320,7 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 	}
 
 	fprintf (stderr, " Imaging mode: %s \n ",IM_mode);
- 
+
 	for ( k = 0; k < params->IM.n3; k++ )
 	{
 		initialValues <<< params->CU.gS2D * 2, params->CU.bS >>> ( I_d,  m12, 0.f, 0.f );
@@ -334,18 +334,18 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 			incomingWave( psi, k, params, params_d );
 			cublas_assert ( cublasScopy ( params->CU.cublasHandle, nAt * 3, xyzCoord_d, 1, xyzCoordFP_d, 1 ) );
 			if ( frPh > 0)
-			{   atomJitter( xyzCoordFP_d, dwfState_d, nAt, DWF_d ); } 
+			{   atomJitter( xyzCoordFP_d, dwfState_d, nAt, DWF_d ); }
 
 			for (s = 0; s < params->IM.m3; s++ )
 			{
 				progressCounter ( k * params->IM.m3 * count + j * params->IM.m3 + s , params->IM.n3 * count * params->IM.m3 );
-				phaseGrating( V_d, nAt, nZ, params, params_d, xyzCoordFP_d, imPot, Z_d, Zlist, occ_d, cufftPlanBatch, s);			  
+				phaseGrating( V_d, nAt, nZ, params, params_d, xyzCoordFP_d, imPot, Z_d, Zlist, occ_d, cufftPlanBatch, s);
 				forwardPropagation ( psi, V_d, frProp, t, params, params_d );
 			}
 
 			if(printLevel >1)
 			{    cublas_assert( cublasCaxpy ( params->CU.cublasHandle, m12, &alpha, psi, 1, exitwave_d, 1) ); }
-						
+
 			if( params->IM.mode == 0 )
 			{
 				applyLensFunction ( psi, k, params, params_d );
@@ -371,7 +371,7 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 
  		addNoiseAndMtf( J_d, I_d, pD, k, poissonState_d, params, params_d );
 	}
-   
+
 	cuda_assert ( cudaMemcpy ( image, J_d, n123 * sizeof ( float ), cudaMemcpyDeviceToHost ) );
 
 	// Calculate and save the untilted potential
@@ -383,22 +383,22 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 		potential  = (float *) malloc (2* m123*sizeof(float));
 
 		if ( ( subSlTh > 1.f ) || ( frPh > 0 ) || ( ( abs( params->IM.tiltspec[2 * k] ) > FLT_EPSILON ) || ( abs( params->IM.tiltspec[2 * k + 1] ) > FLT_EPSILON  ) ) )
-		{    
+		{
 			setSubSlices( params, params_d, 1.f / subSlTh );
 			cufftHandle cufftPlanBatchBis;
 			setCufftPlanBatch( &cufftPlanBatchBis, params );
 			for (  s = 0; s < params->IM.m3; s++ )
 			{
 				phaseGrating( V_d, nAt, nZ, params, params_d, xyzCoordTO_d, imPot, Z_d, Zlist, occ_d, cufftPlanBatchBis,s);
-				saveComplex2D(V_d, params, s, potential);	
+				saveComplex2D(V_d, params, s, potential);
 			}
 			cufft_assert ( cufftDestroy ( cufftPlanBatchBis ) );
 		}
 	}
 
-	writeBinary ( image_name, image,  n123 ); 
+	writeBinary ( image_name, image,  n123 );
 
-	
+
 	writeHdf5 (emd_name, image, potential, exitwave, params, &Z_d, &xyzCoord_d, &DWF_d, &occ_d);
 
 	cuda_assert ( cudaFree ( xyzCoordTO_d ) );
@@ -412,7 +412,7 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 	freeDeviceParams ( &params_d, params->IM.n3 );
 	cufft_assert ( cufftDestroy ( cufftPlanBatch ) );
 	free(image);
-	
+
 	if(printLevel > 0)
 	{
 		free(potential);
@@ -420,7 +420,7 @@ void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DW
 	if(printLevel > 1)
 	{
 		free(exitwave);
-	}	  
+	}
 }
 
 
@@ -467,7 +467,7 @@ void myGBSize( int* gbS, int size )
     cudaSetDevice(dev);
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, dev);
-   
+
     const int maxGS = deviceProp.maxGridSize[0]/2 ; // HALF of max gridsize allowed by device, it is taken double elsewhere
     const int maxBS = deviceProp.maxThreadsDim[0]; // Maximum blocksize allowed by device.
 
@@ -508,12 +508,12 @@ void phaseGrating( cufftComplex* V_d, int nAt, int nZ, params_t* params, params_
 {
 	cufftComplex *V1_d, *V2_d, alpha;
 	int gS = params->CU.gS, gS2D = params->CU.gS2D, bS = params->CU.bS;
-	
+
 	int m12 = params->IM.m1 * params->IM.m2;
-		
-	alpha.x = 1.f; 
+
+	alpha.x = 1.f;
 	alpha.y = 0.f;
-	cuda_assert ( cudaMalloc ( ( void** ) &V1_d, m12 * sizeof ( cufftComplex ) ) ); // V1_d m123 
+	cuda_assert ( cudaMalloc ( ( void** ) &V1_d, m12 * sizeof ( cufftComplex ) ) ); // V1_d m123
 	cuda_assert ( cudaMalloc ( ( void** ) &V2_d, m12 * sizeof ( cufftComplex ) ) );
 
 	initialValues <<< gS * 2, bS >>> ( V_d,  m12, 0.f, 0.f );
@@ -522,12 +522,12 @@ void phaseGrating( cufftComplex* V_d, int nAt, int nZ, params_t* params, params_
 		initialValues <<< gS * 2, bS >>> ( V1_d, m12, 0.f, 0.f );
  		squareAtoms_d <<< myGSize( nAt ), myBSize( nAt ) >>> ( V1_d, params_d, nAt, Z_d, Zlist[j], xyz_d, imPot, occ_d,s );
 		projectedPotential_d <<< gS2D, bS >>> ( V2_d, Zlist[j], params_d );
-		
+
 		divideBySinc <<< gS2D, bS >>> ( V2_d, params_d );
 		cufft_assert( cufftExecC2C( cufftPlanB, V1_d, V1_d, CUFFT_FORWARD ) );
-		
+
 		multiplyWithProjectedPotential_d <<< gS, bS >>> ( V1_d, V2_d, params_d );
-		
+
 		cufft_assert( cufftExecC2C( cufftPlanB, V1_d, V1_d, CUFFT_INVERSE ) );
 		cublas_assert( cublasCaxpy( params->CU.cublasHandle, m12, &alpha, V1_d, 1, V_d, 1) );
 	}
@@ -542,13 +542,13 @@ int listOfElements( int* Zlist, int nAt, int *Z_d )
 
 	Z_h = ( int* ) calloc( nAt, sizeof( int ) );
 	cuda_assert ( cudaMemcpy ( Z_h, Z_d, nAt * sizeof ( int ), cudaMemcpyDeviceToHost ) );
-        
+
 	for ( int j = 0; j < 103; j++ )
 	{    Zlist[j] = 0; }
-	
-	
+
+
 	Zlist[0] = Z_h[0];
-	
+
 	int j, k;
 	for (  j = 1; j < nAt; j++ )
 	{
@@ -583,7 +583,7 @@ void addNoiseAndMtf( float* J_d, cufftComplex* I_d, float dose, int k, curandSta
 	const int gS2D = params->CU.gS2D;
 	const int bS = params->CU.bS;
 	float alpha;
-	
+
 	alpha = 1.f / ( (float) ( m1 * m2 ) );
 
 	cufft_assert ( cufftExecC2C ( params->CU.cufftPlan, I_d, I_d, CUFFT_FORWARD ) );
@@ -600,11 +600,11 @@ void addNoiseAndMtf( float* J_d, cufftComplex* I_d, float dose, int k, curandSta
 	{
 		cublas_assert ( cublasCsscal (params->CU.cublasHandle, m1 * m2, &alpha, I_d, 1 ) );
 		cufft_assert ( cufftExecC2C ( params->CU.cufftPlan, I_d, I_d, CUFFT_INVERSE ) );
-		ascombeNoise_d <<< gS2D, bS >>> ( I_d, dose, m1 * m2, poissonState ); 
+		ascombeNoise_d <<< gS2D, bS >>> ( I_d, dose, m1 * m2, poissonState );
 
 		cufft_assert ( cufftExecC2C ( params->CU.cufftPlan, I_d, I_d, CUFFT_FORWARD ) );
 	}
-	
+
 	multiplyMtf <<< gS2D, bS >>> ( I_d, params_d );
 	cublas_assert ( cublasCsscal (params->CU.cublasHandle, m1 * m2, &alpha, I_d, 1 ) );
 	cufft_assert ( cufftExecC2C ( params->CU.cufftPlan, I_d, I_d, CUFFT_INVERSE ) );
@@ -621,7 +621,7 @@ void saveMeasurements( float* J_d, params_t* params )
 	J_h = ( float* ) malloc ( n123 * sizeof ( float ) );
 	cuda_assert ( cudaMemcpy ( J_h, J_d, n123 * sizeof ( float ), cudaMemcpyDeviceToHost ) );
 
-	writeBinary ( "Measurements.bin", J_h,  n123 ); 
+	writeBinary ( "Measurements.bin", J_h,  n123 );
 
 	free ( J_h );
 }
@@ -632,7 +632,7 @@ void savePotential( cufftComplex* V_d, params_t* params )
 	const int m123  = params->IM.m1 * params->IM.m2 * params->IM.m3;
 	cufftComplex* V_h;
 	float* Vri_h;
-	
+
 	V_h = ( cufftComplex* ) malloc ( m123 * sizeof ( cufftComplex ) );
 	Vri_h = ( float* ) malloc ( m123 * sizeof ( float ) );
 
@@ -654,7 +654,7 @@ void savePotential2D( cufftComplex* V_d, params_t* params, int s )
 	const int m12  = params->IM.m1 * params->IM.m2;
 	cufftComplex* V_h;
 	float* Vri_h;
-	
+
 	V_h = ( cufftComplex* ) malloc ( m12 * sizeof ( cufftComplex ) );
 	Vri_h = ( float* ) malloc ( m12 * sizeof ( float ) );
 
@@ -677,14 +677,14 @@ void saveComplex2D( cufftComplex* V_d, params_t* params, int s, float * f )
 	const int m12  = params->IM.m1 * params->IM.m2;
 	cufftComplex* V_h;
 	float* Vri_h;
-	
+
 	V_h = ( cufftComplex* ) malloc ( m12 * sizeof ( cufftComplex ) );
 	Vri_h = ( float* ) malloc ( m12 * sizeof ( float ) );
 
 	cuda_assert ( cudaMemcpy ( V_h, V_d, m12 * sizeof ( cufftComplex ), cudaMemcpyDeviceToHost ) );
 
-	realPart ( Vri_h, V_h, m12 ); 
- 
+	realPart ( Vri_h, V_h, m12 );
+
 	for(int i= 0; i< m12; i++)
 	{	  f[s*2*m12 + 2*i] = Vri_h[i]; }
 
@@ -692,13 +692,13 @@ void saveComplex2D( cufftComplex* V_d, params_t* params, int s, float * f )
 	imagPart ( Vri_h, V_h, m12 );
 	for(int i= 0; i< m12; i++)
 	{    f[s*2*m12 + 2*i+1] = Vri_h[i];	}
-	
+
 	free( V_h );
 	free( Vri_h );
 }
 
 void diffractionPattern( cufftComplex* psi, int k, params_t* params, params_t* params_d )
-{ 
+{
 	const int m12 = params->IM.m1 * params->IM.m2;
 	float alpha = sqrtf( 1.f / ( (float) m12 ) );
 

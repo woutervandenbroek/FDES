@@ -42,7 +42,7 @@ __global__ void atomJitter_d( float* xyz_d, float* dwf_d, int nAt, curandState *
 	{
 		curandState localState = state[i]; //Copy state to local memory for efficiency
 		float x = curand_normal ( &localState );
-		xyz_d[i] += x * 0.112539540f * sqrtf( dwf_d[i/3] ); // 0.11 = 1/(pi*sqrt(8))
+		xyz_d[i] += x * 0.11253954f * sqrtf( dwf_d[i/3] ); // 0.11 = 1/(pi*sqrt(8))
 		state[i] = localState;  // Copy (modified) state back to global memory
 	}
 }

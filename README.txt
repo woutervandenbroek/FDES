@@ -41,7 +41,7 @@ Address: Institut for Experimentel Physics
              
   Steps of FDES building
   
-  0. For the FDES light version the libraries boost, hdf5 and qstem-libs are not required. The program only reads input from the text file "Params.cnf" and writes the result as raw 8-bit floats under the name "Measurements.bin".
+  0. For the FDES light version the libraries boost, hdf5 and qstem-libs are not required. The program only reads input from the text file "Params.cnf" and writes the result as raw 8-bit floats under the name "Measurements.bin". Furthermore, no DLL can be built anymore and no python scripts are supported. But STEM functionality has been added directly into FDES light.
   
   1. install required libraries with suggested versions: cmake 2.8, fftw 3.2.2, boost 1.53, hdf5 1.8.11, CUDA 5.0 
   

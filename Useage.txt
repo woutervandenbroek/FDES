@@ -35,4 +35,8 @@ Usage:
                                        <default 0, change it for multiple CUDA-capable GPUs configuration if necessary>    
                         [ --help       <Flag outputting  the usage   of FDES >                                          ] 
                         [ --version    <Flag indicating the version  of FDES >                                          ] 
+
+
+
+The FDES light version ONLY takes it input from Params.cnf and ONLY writes it as 8-bit floats raw in Measurements.bin
  

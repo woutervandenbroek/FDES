@@ -3,7 +3,6 @@
 
 #include <cufft.h>
 #include <cstdlib>
-#include <stdio.h>
 
 #ifdef cufft_assert
 #undef cufft_assert
@@ -14,6 +13,8 @@
 #define cufft_assert(e) ((void)0)
 
 #else
+
+extern "C"int printf( const char* __restrict, ... );
 
 struct cufft_result_assert
 {
@@ -26,33 +27,31 @@ struct cufft_result_assert
 
     void report_error( const cufftResult_t& result, const char* const file, const unsigned long line ) const
     {
-        printf( "%s:%lu: cuda runtime error occured:\n[[ERROR]]: %s\n", file, line, error_msg( result ) );
+        printf( "%s:%u: cuda runtime error occured:\n[[ERROR]]: %s\n", file, line, error_msg( result ) );
         abort();
     }
 
-   const char* error_msg( const cufftResult_t& result ) const
+    char* error_msg( const cufftResult_t& result ) const
     {
-        const char * unkonwnerror ="CUFFT: an unknown internal error has occurred." ; 
-	 const char * errorChar;
-        if ( result == CUFFT_INVALID_PLAN ) { errorChar = "CUFFT: Invalid plan."; return errorChar; }
+        if ( result == CUFFT_INVALID_PLAN ) { return "CUFFT: Invalid plan."; }
 
-        if ( result == CUFFT_ALLOC_FAILED ) { errorChar = "CUFFT: Allocation failed.";  return errorChar;}
+        if ( result == CUFFT_ALLOC_FAILED ) { return "CUFFT: Allocation failed."; }
 
-        if ( result == CUFFT_INVALID_TYPE ) { errorChar = "CUFFT: Invalid type.";  return errorChar;}
+        if ( result == CUFFT_INVALID_TYPE ) { return "CUFFT: Invalid type."; }
 
-        if ( result == CUFFT_INVALID_VALUE ) { errorChar = "CUFFT: Invalid value.";  return errorChar;}
+        if ( result == CUFFT_INVALID_VALUE ) { return "CUFFT: Invalid value."; }
 
-        if ( result == CUFFT_INTERNAL_ERROR ) { errorChar = "CUFFT: Internal error.";  return errorChar;}
+        if ( result == CUFFT_INTERNAL_ERROR ) { return "CUFFT: Internal error."; }
 
-        if ( result == CUFFT_EXEC_FAILED ) { errorChar = "CUFFT: Execution failed.";  return errorChar;}
+        if ( result == CUFFT_EXEC_FAILED ) { return "CUFFT: Execution failed."; }
 
-        if ( result == CUFFT_SETUP_FAILED ) { errorChar = "CUFFT: Setup failed.";  return errorChar;}
+        if ( result == CUFFT_SETUP_FAILED ) { return "CUFFT: Setup failed."; }
 
-        if ( result == CUFFT_INVALID_SIZE ) { errorChar = "CUFFT: Invalid size.";  return errorChar;}
+        if ( result == CUFFT_INVALID_SIZE ) { return "CUFFT: Invalid size."; }
 
-        if ( result == CUFFT_UNALIGNED_DATA ) { errorChar = "CUFFT: Unaligned data.";  return errorChar;}
+        if ( result == CUFFT_UNALIGNED_DATA ) { return "CUFFT: Unaligned data."; }
 
-        return unkonwnerror;
+        return "CUFFT: an unknown internal error has occurred.";
     }
 };//struct cufft_result_assert 
 

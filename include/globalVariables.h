@@ -1,4 +1,3 @@
-
 /*==================================================================
 
 Copyright (C) 2015 Wouter Van den Broek, Xiaoming Jiang
@@ -28,8 +27,10 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 
 extern int MATLAB_TILT_COMPATIBILITY;
 
-extern int NO_FUNCTION_EVALS_FDES;
+extern int NO_FUNCTION_EVALS_IDES;
 
-extern int NO_DERIVATIVE_EVALS_FDES;
+extern int NO_DERIVATIVE_EVALS_IDES;
+
+extern int gpu_index;
 
 #endif

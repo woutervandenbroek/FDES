@@ -1,34 +1,8 @@
-/*==================================================================
-
-Copyright (C) 2015 Wouter Van den Broek, Xiaoming Jiang
-
-This file is part of FDES.
-
-FDES is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-FDES is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with FDES. If not, see <http://www.gnu.org/licenses/>.
-
-Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
-       xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com 
-
-===================================================================*/
-
-
 #ifndef curand_assert_lizgelkuzgqwozhblhbqwerqzfwhgrerwoi
 #define curand_assert_lizgelkuzgqwozhblhbqwerqzfwhgrerwoi
 
 #include <curand.h>
 #include <cstdlib>
-#include <stdio.h>
 
 #ifdef curand_assert
 #undef curand_assert
@@ -40,7 +14,7 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 
 #else
 
-
+extern "C"int printf( const char* __restrict, ... );
 
 struct curand_result_assert
 {
@@ -53,41 +27,37 @@ struct curand_result_assert
 
     void report_error( const curandStatus_t& result, const char* const file, const unsigned long line ) const
     {
-        printf( "%s:%lu: cuda runtime error occured:\n[[ERROR]]: %s\n", file, line, error_msg( result ) );
+        printf( "%s:%u: cuda runtime error occured:\n[[ERROR]]: %s\n", file, line, error_msg( result ) );
         abort();
     }
 
-   const char* error_msg( const curandStatus_t& result ) const
+    char* error_msg( const curandStatus_t& result ) const
     {
-		const char * unkonwnerror ="CURAND: an unknown internal error has occurred." ;
-		
-		const char * errorChar;
-		
-		if ( result == CURAND_STATUS_VERSION_MISMATCH ) { errorChar = "CURAND: Header le and linked library version do not match."; return errorChar; }
+		if ( result == CURAND_STATUS_VERSION_MISMATCH ) { return "CURAND: Header le and linked library version do not match."; }
 
-		if ( result == CURAND_STATUS_NOT_INITIALIZED ) { errorChar = "CURAND: Generator not initialized.";return errorChar;  }
+		if ( result == CURAND_STATUS_NOT_INITIALIZED ) { return "CURAND: Generator not initialized."; }
 
-		if ( result == CURAND_STATUS_ALLOCATION_FAILED ) { errorChar = "CURAND: Memory allocation failed.";return errorChar;  }
+		if ( result == CURAND_STATUS_ALLOCATION_FAILED ) { return "CURAND: Memory allocation failed."; }
 
-		if ( result == CURAND_STATUS_TYPE_ERROR ) { errorChar = "CURAND: Generator is wrong type."; return errorChar; }
+		if ( result == CURAND_STATUS_TYPE_ERROR ) { return "CURAND: Generator is wrong type."; }
 
-		if ( result == CURAND_STATUS_OUT_OF_RANGE ) { errorChar = "CURAND: Argument out of range."; return errorChar; }
+		if ( result == CURAND_STATUS_OUT_OF_RANGE ) { return "CURAND: Argument out of range."; }
 
-		if ( result == CURAND_STATUS_LENGTH_NOT_MULTIPLE ) { errorChar = "CURAND: Length requested is not a multiple of dimension.";return errorChar;  }
+		if ( result == CURAND_STATUS_LENGTH_NOT_MULTIPLE ) { return "CURAND: Length requested is not a multiple of dimension."; }
 
-		if ( result == CURAND_STATUS_DOUBLE_PRECISION_REQUIRED ) { errorChar = "CURAND: GPU does not have double precision required by MRG32k3a.";return errorChar;  }
+		if ( result == CURAND_STATUS_DOUBLE_PRECISION_REQUIRED ) { return "CURAND: GPU does not have double precision required by MRG32k3a."; }
 
-		if ( result == CURAND_STATUS_LAUNCH_FAILURE ) { errorChar = "CURAND: Kernel launch failure."; }
+		if ( result == CURAND_STATUS_LAUNCH_FAILURE ) { return "CURAND: Kernel launch failure."; }
 
-		if ( result == CURAND_STATUS_PREEXISTING_FAILURE ) { errorChar = "CURAND: Preexisting failure on library entry.";return errorChar;  }
+		if ( result == CURAND_STATUS_PREEXISTING_FAILURE ) { return "CURAND: Preexisting failure on library entry."; }
 
-		if ( result == CURAND_STATUS_INITIALIZATION_FAILED ) { errorChar = "CURAND: Initialization of CUDA failed.";return errorChar;  }
+		if ( result == CURAND_STATUS_INITIALIZATION_FAILED ) { return "CURAND: Initialization of CUDA failed."; }
 
-		if ( result == CURAND_STATUS_ARCH_MISMATCH ) { errorChar = "CURAND: Architecture mismatch, GPU does not support requested feature.";return errorChar;  }
+		if ( result == CURAND_STATUS_ARCH_MISMATCH ) { return "CURAND: Architecture mismatch, GPU does not support requested feature."; }
 
-		if ( result == CURAND_STATUS_INTERNAL_ERROR ) { errorChar = "CURAND: Internal library error."; return errorChar; }
+		if ( result == CURAND_STATUS_INTERNAL_ERROR ) { return "CURAND: Internal library error."; }
 
-		return unkonwnerror;
+		return "CURAND: an unknown internal error has occurred.";
     }
 };//struct curand_result_assert 
 

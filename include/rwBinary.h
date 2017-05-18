@@ -25,10 +25,10 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 #ifndef rwBinary_lksdfiuasdfqkjwbFSDH
 #define rwBinary_lksdfiuasdfqkjwbFSDH
 
-void readBinary(const char* filename, float* I, int size);
+void readBinary(char* filename, float* I, int size);
 
-void writeBinary (const char* filename, float* f, int size);
+void writeBinary (char* filename, float* f, int size);
 
-void appendBinary (const char* filename, float* f, int size );
+void appendBinary ( char* filename, float* f, int size );
 
 #endif

@@ -29,7 +29,6 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 #include <cuComplex.h>
 #include "cuda_assert.hpp"
 #include "float.h"
-#include "paramStructure.h"
 #include "coordArithmetic.h"
 
 
@@ -47,32 +46,34 @@ __global__ void sumElements_d( cuComplex* dst, cuComplex* src, cuComplex thold, 
 
 __global__ void addDerivedAbsVals(cuComplex* dst, cuComplex* src, float fctr, int size, float mu0 );
 
+__global__ void devideByAbsValue_d( cuComplex* f, int dim, float mu0 );
+
 __global__ void myCaxpy ( cuComplex* y, cuComplex* x, cuComplex a, int size );
 
 __device__ float absoluteValue( float x, const float mu0 );
 
-__global__ void complex_magnitutude_square( cufftComplex *des, cufftComplex *src, int nSize );
+__global__ void upperThreshold ( cufftComplex* f, int size, float thrRe, float thrIm );
 
-__global__ void memcpy_complex_d( cufftComplex *des, cufftComplex *src, int nSize );
+__global__ void	lowerThreshold ( cufftComplex* f, int size, float thrRe, float thrIm );
 
-__global__ void cufftShift2D_dim1_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int i );
+__global__ void copyCufftShift_dim1_d ( cufftComplex* f0, cufftComplex* f1, int dim1, int dim2, int n0, int offSet );
 
-__global__ void cufftShift2D_dim2_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int i );
+__global__ void copyCufftShift_dim2_d ( cufftComplex* f0, cufftComplex* f1, int dim1, int dim2, int n0, int offSet );
 
-__global__ void cufftIShift2D_dim1_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int i );
+__global__ void cufftShift2D_dim1_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int offSet );
 
-__global__ void cufftIShift2D_dim2_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int i );
+__global__ void cufftShift2D_dim2_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int offSet );
 
-__global__ void copyCufftShift_dim1_d ( cufftComplex* f0_d, cufftComplex* f1_d, int n1, int n2, int n0, int i );
+__global__ void cufftIShift2D_dim1_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int offSet );
 
-__global__ void copyCufftShift_dim2_d ( cufftComplex* f0_d, cufftComplex* f1_d, int n1, int n2, int n0, int i );
-
-__global__ void addConstant_d ( cuComplex* f, cuComplex a, int size );
+__global__ void cufftIShift2D_dim2_d ( cufftComplex* f1, cufftComplex* f0, int dim1, int dim2, int n0, int offSet );
 
 
 void realPart(float* Vri, cufftComplex* V, int size);
 
 void imagPart(float* Vri, cufftComplex* V, int size);
+
+float sumElementsF( float* V, const int size );
 
 float sumElements(cuComplex* V, const int size);
 
@@ -86,8 +87,8 @@ cuComplex sumElementsComplex(cuComplex* V, const int size);
 
 cuComplex sumElements_helper( cuComplex* V, cuComplex thold, const int size, const int flag, const float mu0 );
 
-void cufftShift2D_h( cufftComplex* f, int dim1, int dim2, int blockSize );
+void cufftShift2D_h( cufftComplex* f0_d, int n1, int n2, int bS );
 
-void cufftIShift2D_h( cufftComplex* f, int dim1, int dim2, int blockSize );
+void cufftShiftI2D_h( cufftComplex* f0_d, int n1, int n2, int bS );
 
 #endif

@@ -44,14 +44,6 @@ Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
 #include "multisliceSimulation.h"
 #include "optimFunctions.h"
 #include "performanceTimer.h"
-#include "rwHdf5.h"
-
-extern int gpu_index;
-extern int printLevel;
-extern float * image;	
-extern float * potential;
-extern float * exitwave;
- 
 
 __global__ void setupCurandState_d(curandState *state, int seed, int size);
 
@@ -59,7 +51,7 @@ __global__ void atomJitter_d( float* xyz_d, float* dwf_d, int nAt, curandState *
 
 __global__ void ascombeNoise_d( float* f, float dose, int size, curandState *state );
 
-__global__ void squareAtoms_d ( cufftComplex* V, params_t* params, int nAt, int* Z, int Z0, float* xyz, float imPot, float* occ, int s );
+__global__ void squareAtoms_d ( cufftComplex* V, params_t* params, int nAt, int* Z, int Z0, float* xyz, float imPot, float* occ, int zlayer );
 
 __device__ int mySignum_d( float x );
 
@@ -67,16 +59,12 @@ __global__ void divideBySinc ( cufftComplex* V2_d, params_t* params );
 
 __global__ void multiplyWithProjectedPotential_d ( cufftComplex* V1, cufftComplex* V2, params_t* params );
 
-__global__ void memorySetZero_d ( cufftComplex* V, params_t* params );
+__global__ void shiftCoordinates_d ( float* xyzCoord_d, float sX, float sY, int size );
 
-__global__ void areaWeighting ( cufftComplex* psi, cufftComplex* psi_gaussian, float* mask, params_t* params );
+__global__ void multiplyDetMask_d( float* J_d, params_t* params_d );
 
-//void diffractionPattern( cufftComplex* psi, params_t* params, cufftHandle cufftPlanB);
-void diffractionPattern( cufftComplex* psi, int k, params_t* params, params_t* params_d );
 
-void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DWF_d, float* occ_d, char * image_name, char * emd_name);
-
-void buildMeasurementsTimer( params_t* params, int nAt, float* tOff, int frPh, float pD, float imPot, float subSlTh, int* Z_d, float* xyzCoord_d, float* DWF_d, float* occ_d );
+void buildMeasurements( params_t* params, int* Z_d, float* xyzCoord_d, float* DWF_d, float* occ_d );
 
 void tiltCoordinates( float* xyz_d, int nAt, float t_0, float t_1, float t_2, params_t* params );
 
@@ -88,34 +76,26 @@ int myGSize( int size );
 
 int myBSize( int size );
 
-void phaseGrating(  cufftComplex* V_d, int nAt, int nZ, params_t* params, params_t* params_d, float* xyzCoordFP_d, float imPot, int* Z_d, int* Zlist, float* occ_d, cufftHandle cufftPlanBatch, int s );
-
-void phaseGratingTimer( cufftComplex* V_d, int nAt, int nZ, params_t* params, params_t* params_d, float* xyz_d, float imPot, int* Z_d, int* Zlist, float* occ_d, cufftHandle cufftPlanB );
+void phaseGrating(  cufftComplex* V_d, int nAt, int nZ, params_t* params, params_t* params_d, float* xyzCoordFP_d, float imPot, int* Z_d, int* Zlist, float* occ_d, int i );
 
 int listOfElements( int* Zlist, int nAt, int *Z_d );
 
 void setCufftPlanBatch( cufftHandle* plan, params_t* params );
 
-void forwardPropagationFDES( cufftComplex* psi, cufftComplex* V_d, int k, int count, params_t* params, params_t* params_d, int s );
-
-void forwardPropagationFDESTimer( cufftComplex* I_d, cufftComplex* V_d, int k, int count, params_t* params, params_t* params_d );
-
-void addNoiseAndMtf( float* J_d, cufftComplex* I_d, float dose, int k, curandState* poissonState, params_t* params, params_t* params_d );
+void addNoiseAndMtf( cufftComplex* I_d, float dose, int k, curandState* poissonState, params_t* params, params_t* params_d );
 
 void saveMeasurements( float* J_d, params_t* params );
 
 void savePotential( cufftComplex* V_d, params_t* params );
 
-void savePotential2D( cufftComplex* V_d, params_t* params, int s );
-
-void saveComplex2D( cufftComplex* V_d, params_t* params, int s, float * f );
-
-void saveDiffractionPattern( cufftComplex* psi, params_t* params, cufftHandle cufftPlanB, int s, float * dp);
-
 float subSliceRatio( float slice, float subSlice );
 
 void setSubSlices( params_t* params, params_t* params_d, float ratio );
 
-void applyMaskFiltering( cufftComplex* psi, params_t* params, params_t* params_d );
+void farFieldTransform( cufftComplex* psi, params_t* params, params_t* params_d );
+
+void shiftCoordinates( float* xyzCoord_d, params_t* params, int scnI );
+
+void integrateRecordings( float* J_h, cufftComplex* J_d, params_t* params, params_t* params_d, int k, int scnI );
 
 #endif 

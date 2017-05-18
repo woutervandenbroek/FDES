@@ -42,12 +42,10 @@ __device__ void parametersKirkland_d ( float* a, float* b, float* c, float* d, i
 __global__ void normalizeProjectedPotential_d ( cufftComplex* V, float V0x, int size );
 
 
-void normalizeProjectedPotential ( cufftComplex* V, int size, int gS, int bS );
+void writeCode ();
 
-//void writeCode ();
+void writeMATLABCode();
 
-//void writeMATLABCode();
-
-//void writeDeviceCode();
+void writeDeviceCode();
 
 #endif

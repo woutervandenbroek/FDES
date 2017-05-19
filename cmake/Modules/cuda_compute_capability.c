@@ -23,24 +23,88 @@
 	printf("Couldn't get device count: %s\n", cudaGetErrorString(cudaGetLastError()));
 	return 1;
 	}
-	/* machines with no GPUs can still report one emulation device */
-	for (device = 0; device < deviceCount; ++device)
-	{
-	cudaGetDeviceProperties(&properties, device);
-	if (properties.major != 9999)
-	{/* 9999 means emulation only */
-	++gpuDeviceCount;}
-	sm_major[device] = properties.major;
-	sm_minor[device] = properties.minor;
-	compute_major[device]=sm_major[device];
- 	compute_minor[device]=sm_minor[device];
-	}
+
+	// /* machines with no GPUs can still report one emulation device */
+	// for (device = 0; device < deviceCount; ++device)
+	// {
+	// cudaGetDeviceProperties(&properties, device);
+	// if (properties.major != 9999)
+	// {/* 9999 means emulation only */
+	// ++gpuDeviceCount;}
+	// sm_major[device] = properties.major;
+	// sm_minor[device] = properties.minor;
+	// compute_major[device]=sm_major[device];
+ 	// compute_minor[device]=sm_minor[device];
+	// }
+    //	
+	// for (device = 0; device < deviceCount; device ++)
+	// {
+	// printf("arch=compute_%d%d,code=sm_%d%d ",compute_major[device],compute_minor[device],sm_major[device],sm_minor[device]);
+	// } 
 	
+	/* machines with no GPUs can still report one emulation device */
+	for (device = 0; device < deviceCount; ++device) 
+	{
+		cudaGetDeviceProperties(&properties, device);
+		if (properties.major != 9999) 
+		{/* 9999 means emulation only */
+			++gpuDeviceCount;}
+		sm_major[device] = properties.major;
+		sm_minor[device] = properties.minor;
+
+
+		if (sm_major[device] == 2 && sm_minor[device] == 0)
+		{
+			compute_major[device]=2; 
+			compute_minor[device]=0;
+		}
+
+		if (sm_major[device] == 2 && sm_minor[device] == 1)
+		{
+			compute_major[device]=2; 
+			compute_minor[device]=0;
+		}
+
+		if (sm_major[device] == 3 && sm_minor[device] == 0)
+		{
+			compute_major[device]=3; 
+			compute_minor[device]=0;
+		}
+
+		if (sm_major[device] == 3 && sm_minor[device] == 2)
+		{
+			compute_major[device]=3; 
+			compute_minor[device]=0;
+		}
+
+
+		if (sm_major[device] == 3 && sm_minor[device] == 5)
+		{
+			compute_major[device]=3; 
+			compute_minor[device]=5;
+		}
+
+
+		if (sm_major[device] == 5 && sm_minor[device] == 0)
+		{
+			compute_major[device]=5; 
+			compute_minor[device]=0;
+		}
+
+
+		if (sm_major[device] == 5 && sm_minor[device] == 2)
+		{
+			compute_major[device]=5; 
+			compute_minor[device]=2;
+		}
+
+
+	}
+
 	for (device = 0; device < deviceCount; device ++)
 	{
-	printf("arch=compute_%d%d,code=sm_%d%d ",compute_major[device],compute_minor[device],sm_major[device],sm_minor[device]);
+		printf("arch=compute_%d%d,code=sm_%d%d ",compute_major[device],compute_minor[device],sm_major[device],sm_minor[device]);
 	}
-	
 	
 	
 	return 1; /* failure */

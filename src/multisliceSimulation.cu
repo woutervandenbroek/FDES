@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with FDES. If not, see <http://www.gnu.org/licenses/>.
 
 Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
-       xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com 
+       xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com
 
 ===================================================================*/
 
@@ -196,7 +196,7 @@ __global__ void taperedCosineWindow_d ( cufftComplex* psi, params_t* params, flo
 		alpha = 1.5f * ( ( (float) params->IM.dn1 ) / ( (float) dim1 ) ); // alpha parameter of the tapered cosine window
 		x = ( (float) i1 ) / ( (float) ( dim1 - 1) );
 		if ( x < alpha * 0.5f )	{
-			w = 0.5f * ( 1.f + cosf( params->cst.pi * ( 2.f * x / alpha - 1.f ) ) ); 
+			w = 0.5f * ( 1.f + cosf( params->cst.pi * ( 2.f * x / alpha - 1.f ) ) );
 		} else { if ( x > 1.f - 0.5f * alpha ) {
 			w = 0.5f * ( 1.f + cosf( params->cst.pi * ( 2.f * x / alpha + 1.f - 2.f / alpha ) ) );
 		} }
@@ -204,9 +204,9 @@ __global__ void taperedCosineWindow_d ( cufftComplex* psi, params_t* params, flo
 		alpha = 1.5f * ( ( (float) params->IM.dn2 ) / ( (float) dim2 ) ); // alpha parameter of the tapered cosine window
 		x = ( (float) i2 ) / ( (float) ( dim2 - 1) );
 		if ( x < alpha * 0.5f )	{
-			w *= 0.5f * ( 1.f + cosf( params->cst.pi * ( 2.f * x / alpha - 1.f ) ) ); 
+			w *= 0.5f * ( 1.f + cosf( params->cst.pi * ( 2.f * x / alpha - 1.f ) ) );
 		} else { if ( x > 1.f - 0.5f * alpha ) {
-			w *= 0.5f * ( 1.f + cosf( params->cst.pi * ( 2.f * x / alpha + 1.f - 2.f / alpha ) ) ); 
+			w *= 0.5f * ( 1.f + cosf( params->cst.pi * ( 2.f * x / alpha + 1.f - 2.f / alpha ) ) );
 		} }
 		psi[i].x *= w;
 		psi[i].x += ( 1.f - w ) * bckgrnd;
@@ -220,7 +220,7 @@ __global__ void zeroHighFreq ( cufftComplex* f, int dim1, int dim2 )
 	const int i = blockIdx.x * blockDim.x + threadIdx.x;
 	float mindim = ( float ) dim1;
 	if ( ( float ) dim2 < mindim ) {
-		mindim = ( float ) dim2; 
+		mindim = ( float ) dim2;
 	}
 	if ( i < 2 * dim1 * dim2 ) {
 		int i0 = i / 2;
@@ -231,7 +231,7 @@ __global__ void zeroHighFreq ( cufftComplex* f, int dim1, int dim2 )
 
 		if ( ( ( (float) ( i1 * i1 + i2 * i2 ) ) * 9.f / ( mindim * mindim ) ) > 1.f ) {
 			if ( ( i % 2 ) == 0 ) {
-				f[i0].x = 0.f; 
+				f[i0].x = 0.f;
 			} else {
 				f[i0].y = 0.f;
 			}
@@ -328,7 +328,7 @@ __global__ void multiplyLensFunction ( cufftComplex* psi, int k, params_t* param
             float W = nu * nu * ( 0.5f * (
                                       params->EM.aberration.A1_0 * cosf ( 2.f * ( phi - params->EM.aberration.A1_1 ) )
 									  + params->EM.aberration.C1_0 + params->IM.defoci[k]
-									  - ( (float) ( params->IM.m3 + 1 ) ) * params->IM.d3 * 0.5f ) 
+									  - ( (float) ( params->IM.m3 + 1 ) ) * params->IM.d3 * 0.5f )
                                   + nu * ( 0.33333333f * (
                                                params->EM.aberration.A2_0 * cosf ( 3.f * ( phi - params->EM.aberration.A2_1 ) )
                                                + params->EM.aberration.B2_0 * cosf ( phi - params->EM.aberration.B2_1 ) )
@@ -346,33 +346,6 @@ __global__ void multiplyLensFunction ( cufftComplex* psi, int k, params_t* param
                                                                     + params->EM.aberration.S5_0 * cosf ( 2.f * ( phi - params->EM.aberration.S5_1 ) )
                                                                     + params->EM.aberration.C5_0 )
                                                                    ) ) ) ) ); // CLOSE ALL THE BRACKETS!
-			
-			// Apply a phase ramp that undoes the real-space image shift due to the beam tilts
-			/* float nuBeam = 0.f;
-			nuBeam = sqrtf( params->IM.tiltbeam[2 * k] * params->IM.tiltbeam[2 * k] + params->IM.tiltbeam[2 * k + 1] * params->IM.tiltbeam[2 * k + 1] );
-			  // The next portion is for undoing the image shift that comes about due to the combination of non-zero beam tilts and non-zero aberrations
-			    // It appears that this shift is important in estimating the aberrations, so it's best not to undo it.
-				// However, I've written the code and it seems a shame to delete it, so it stays in, but commented out.
-				// When including it, don't forget to adjust multiplyDC1Prefactor_d etc. as well.
-			if ( nuBeam < ( params->EM.ObjAp + FLT_EPSILON ) ) // i.e. only for bright field
-			{
-				W -= ( nu1 * params->IM.tiltbeam[2 * k + 1] + nu2 * params->IM.tiltbeam[2 * k] ) *
-					( params->EM.aberration.C1_0 + params->RE.defocPoly0 + params->IM.defoci[k] * ( params->RE.defocPoly1 + params->IM.defoci[k] * params->RE.defocPoly2 )
-					- ( (float) ( params->IM.m3 + 1 ) ) * params->IM.d3 * 0.5f
-					+ params->EM.aberration.A1_0 * cosf ( 2.f * ( phi - params->EM.aberration.A1_1 ) ) 
-					+ nuBeam * ( params->EM.aberration.A2_0 * cosf ( 3.f * ( phi - params->EM.aberration.A2_1 ) )
-					            + params->EM.aberration.B2_0 * cosf ( phi - params->EM.aberration.B2_1 )
-					            + nuBeam * ( params->EM.aberration.A3_0 * cosf ( 4.f * ( phi - params->EM.aberration.A3_1 ) )
-					                       + params->EM.aberration.S3_0 * cosf ( 2.f * ( phi - params->EM.aberration.S3_1 ) )
-							               + params->EM.aberration.C3_0     
-						    	           + nuBeam * ( params->EM.aberration.A4_0 * cosf ( 5.f * ( phi - params->EM.aberration.A4_1 ) )
-							                           + params->EM.aberration.B4_0 * cosf ( phi - params->EM.aberration.B4_1 )
-							                           + params->EM.aberration.D4_0 * cosf ( 3.f * ( phi - params->EM.aberration.D4_1 ) ) 
-								                       + nuBeam * ( params->EM.aberration.A5_0 * cosf ( 6.f * ( phi - params->EM.aberration.A5_1 ) )
-									                              + params->EM.aberration.R5_0 * cosf ( 4.f * ( phi - params->EM.aberration.R5_1 ) )
-									                              + params->EM.aberration.S5_0 * cosf ( 2.f * ( phi - params->EM.aberration.S5_1 ) )
-									                              + params->EM.aberration.C5_0 )  )  )  )  );
-			}*/
 
             // Recycle the variables:
 			nu = sqrtf ( nu1 * nu1 + nu2 * nu2 );
@@ -396,232 +369,6 @@ __global__ void multiplyLensFunction ( cufftComplex* psi, int k, params_t* param
         }
     }
 }
-
-
-
-__global__ void multiplyDC1Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1  = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-		float preFactor = -( nu1 * nu1 + nu2 * nu2 );
-		/* // Include here (and in the other multiplyDXX_XPrefactor_d-kernels) to account for the image-shift compensation explained in multiplyLensFunction.
-		if( sqrtf( params->IM.tiltbeam[2 * k] * params->IM.tiltbeam[2 * k] + params->IM.tiltbeam[2 * k + 1 ] * params->IM.tiltbeam[2 * k + 1] ) < ( params->EM.ObjAp + FLT_EPSILON ) )
-		{    preFactor += 2.f * ( params->IM.tiltbeam[2 * k + 1] * nu1 + params->IM.tiltbeam[2 * k] * nu2 ) ; }*/
-		preFactor *= params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) );
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
-
-__global__ void multiplyDA1_0Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1  = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-		float preFactor =  -( nu1 * nu1 + nu2 * nu2 );
-		preFactor *= params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) ) * cosf( 2.f * (  atan2f ( nu2, nu1 ) - params->EM.aberration.A1_1 ) );
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
-
-__global__ void multiplyDA1_1Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1  = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-		float preFactor = -( nu1 * nu1 + nu2 * nu2 );
-		preFactor *=   params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) ) 
-			         * params->EM.aberration.A1_0 * sinf( 2.f * (  atan2f ( nu2, nu1 ) - params->EM.aberration.A1_1 ) ) * 2.f;
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
-
-__global__ void multiplyDA2_0Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1 = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-
-		float preFactor = -( nu1 * nu1 + nu2 * nu2 ) / 3.f;
-		preFactor *= 2.f * params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) )
-			* sqrtf( nu1 * nu1 + nu2 * nu2 ) * cosf( 3.f * (  atan2f ( nu2, nu1 ) - params->EM.aberration.A2_1 ) );
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
-
-__global__ void multiplyDA2_1Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1  = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-		float preFactor = -( nu1 * nu1 + nu2 * nu2 );
-		preFactor *= 2.f * params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) )
-			* sqrtf( nu1 * nu1 + nu2 * nu2 ) * params->EM.aberration.A2_0 * sinf( 3.f * (  atan2f ( nu2, nu1 ) - params->EM.aberration.A2_1 ) );
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
-
-__global__ void multiplyDB2_0Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1  = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-		float preFactor = -( nu1 * nu1 + nu2 * nu2 ) / 3.f;
-		preFactor *= 2.f * params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) )
-			* sqrtf( nu1 * nu1 + nu2 * nu2 ) * cosf( atan2f ( nu2, nu1 ) - params->EM.aberration.B2_1 );
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
-
-__global__ void multiplyDB2_1Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1  = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-		float preFactor = -( nu1 * nu1 + nu2 * nu2 ) / 3.f;
-		preFactor *= 2.f * params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) )
-			* sqrtf( nu1 * nu1 + nu2 * nu2 ) * params->EM.aberration.B2_0 * sinf( atan2f ( nu2, nu1 ) - params->EM.aberration.B2_1 );
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
-__global__ void multiplyDC3Prefactor_d ( cufftComplex* psi, int k, params_t* params )
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    const int dim1 = params->IM.m1;
-    const int dim2 = params->IM.m2;
-
-    if ( i < dim1 * dim2 )
-    {
-        int i1, i2;
-        dbCoord ( i1, i2, i, dim1 );
-        iwCoordIp ( i1, dim1 );
-        iwCoordIp ( i2, dim2 );
- 
-        float nu1  = ( ( ( float ) i1 ) / ( ( float ) dim1 ) ) * ( params->EM.lambda / params->IM.d1 );
-        float nu2 = ( ( ( float ) i2 ) / ( ( float ) dim2 ) ) * ( params->EM.lambda / params->IM.d2 );
-        
-		// division with dim1*dim2 to prevent rescaling for the CUFFT in derivativeDefocus
-		float preFactor =  -( nu1 * nu1 + nu2 * nu2 ) * 0.25f ;
-		preFactor *= 2.f * params->cst.pi / ( params->EM.lambda  * ( ( float ) ( dim1 * dim2 ) ) ) * ( nu1 * nu1 + nu2 * nu2 );
-
-		nu1 = psi[i].x;
-		psi[i].x = -psi[i].y * preFactor;
-		psi[i].y = nu1 * preFactor;
-    }
-}
-
 
 __global__ void multiplySpatialFreqTilt_d ( cufftComplex* f, const int k, params_t* params, const int xy )
 {
@@ -800,7 +547,7 @@ __global__ void flattenDynamicRange( cuComplex* f, int size, int flag )
 	const int j = blockIdx.x * blockDim.x + threadIdx.x;
 	float signFx = 1.f;
 	float signFy = 1.f;
-	
+
 	if ( j < size )
 	{
 		if( f[j].x < 0.f )
@@ -827,7 +574,7 @@ __global__ void tiltObject_d ( cuComplex* fOut, cuComplex* fIn, int it, params_t
 {
 	// flag == 1: forward rotation, flag == -1: rotate back
     const int j = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
 	const int m1 = params->IM.m1;
 	const int m2 = params->IM.m2;
 	const int m3 = params->IM.m3;
@@ -848,8 +595,8 @@ __global__ void tiltObject_d ( cuComplex* fOut, cuComplex* fIn, int it, params_t
 		x2 = ( ( (float) i2 ) - ( (float) m2 ) * 0.5f ) * ( params->IM.d2 / params->IM.d1 );
 		x3 = ( ( (float) i3 ) - ( (float) m3 ) * 0.5f ) * ( params->IM.d3 / params->IM.d1 );
 
-		// Rotation. This is compatible with FDES rotations. 
-		// The angle has a differnt sign than FDES, because in FDES we rotate the OBJECT, 
+		// Rotation. This is compatible with FDES rotations.
+		// The angle has a differnt sign than FDES, because in FDES we rotate the OBJECT,
 		// while in the following lines we rotate the AXES
 		if ( flag == 1 )
 		{
@@ -898,7 +645,7 @@ __global__ void tiltObject_d ( cuComplex* fOut, cuComplex* fIn, int it, params_t
 		i1 = roundf( x1 - 0.5f );
 		i2 = roundf( x2 - 0.5f );
 		i3 = roundf( x3 - 0.5f );
-		
+
 		x1 += -( (float) i1 );
 		x2 += -( (float) i2 );
 		x3 += -( (float) i3 );
@@ -943,7 +690,7 @@ __global__ void tiltObject_d ( cuComplex* fOut, cuComplex* fIn, int it, params_t
 }
 
 
-void rawMeasurement( cufftComplex *I_d, params_t* params, params_t* params_d, int k, int nAt, int nZ, float *xyzCoord_d, 
+void rawMeasurement( cufftComplex *I_d, params_t* params, params_t* params_d, int k, int nAt, int nZ, float *xyzCoord_d,
 		    float imPot, int *Z_d, int *Zlist, float *DWF_d, float *occ_d, curandState *dwfState_d, int* itCnt )
 {
 	float *xyzCoordFP_d;
@@ -956,8 +703,8 @@ void rawMeasurement( cufftComplex *I_d, params_t* params, params_t* params_d, in
 
 	fresnelPropagator ( frProp_d, params, params_d, 1 );
 	cublas_assert ( cublasScopy ( params->CU.cublasHandle, nAt * 3, xyzCoord_d, 1, xyzCoordFP_d, 1 ) );
-	if ( params->IM.frPh > 0) {   
-		atomJitter( xyzCoordFP_d, dwfState_d, nAt, DWF_d ); 
+	if ( params->IM.frPh > 0) {
+		atomJitter( xyzCoordFP_d, dwfState_d, nAt, DWF_d );
 	}
 	float temp = 0.f;
 	incomingWave( I_d, params, params_d, k );
@@ -985,14 +732,14 @@ void forwardPropagation ( cufftComplex* psi, cufftComplex* t, cufftComplex* frPr
 	const int m12 = params->IM.m1 * params->IM.m2;
 	const int gS = params->CU.gS2D;
 	const int bS = params->CU.bS;
-	
-	// Do the propagation 
+
+	// Do the propagation
 	potential2Transmission <<< gS, bS>>> ( t, m12 ); // transform potential to transmission
 	cuda_assert ( cudaDeviceSynchronize () );
 	bandwidthLimit ( t, params );
 	multiplyElementwise <<< gS, bS>>> ( psi, t, m12 ); // do the transmission
 	cuda_assert ( cudaDeviceSynchronize () );
-	convolveWithFrProp ( psi, frProp, params ); // do the propagation	
+	convolveWithFrProp ( psi, frProp, params ); // do the propagation
 }
 
 void bandwidthLimit ( cufftComplex* f, params_t* params )
@@ -1016,7 +763,7 @@ void incomingWave( cufftComplex* psi, params_t* params, params_t* params_d, int 
 	const int m12 = params->IM.m1 * params->IM.m2;
 	float alpha = 1.f;
 
-	// Plane wave for mode == 0 or 1 
+	// Plane wave for mode == 0 or 1
 	initialValues <<< 2 * gS, bS >>> ( psi, m12, 1.f, 0.f );
 
 	// In case of structured illumination:
@@ -1028,7 +775,7 @@ void incomingWave( cufftComplex* psi, params_t* params, params_t* params_d, int 
 		cufftShift2D_h( psi, params->IM.m1, params->IM.m2, bS );
 		bandwidthLimit ( psi, params );
 		cublas_assert( cublasScnrm2( params->CU.cublasHandle, m12, psi, 1, &alpha ) );
-		if ( params->IM.mode == 2 ) {		
+		if ( params->IM.mode == 2 ) {
 			alpha = sqrtf( (float) m12 ) / alpha;
 		} else { // i.e. when mode == 3
 			alpha = 1.f / alpha;
@@ -1036,7 +783,7 @@ void incomingWave( cufftComplex* psi, params_t* params, params_t* params_d, int 
 		cublas_assert( cublasCsscal( params->CU.cublasHandle, m12, &alpha, psi, 1 ) );
 	}
 	if ( params->IM.doBeamTilt ) {
-		tiltBeam_d <<< params->CU.gS, params->CU.bS >>> ( psi, k, params_d, 1 ); 
+		tiltBeam_d <<< params->CU.gS, params->CU.bS >>> ( psi, k, params_d, 1 );
 	}
 }
 
@@ -1069,7 +816,7 @@ void convolveWithFrProp ( cufftComplex* psi, cufftComplex* frProp, params_t* par
 
 void applyLensFunction ( cufftComplex* psi, int k, params_t* params, params_t* params_d )
 {
-	const int m12 = params->IM.m1 * params->IM.m2;   
+	const int m12 = params->IM.m1 * params->IM.m2;
 	cufft_assert ( cufftExecC2C ( params->CU.cufftPlan, psi, psi, CUFFT_FORWARD ) );
 	cuda_assert ( cudaDeviceSynchronize () );
 	// NOTE: From when the rotation was approximate: shiftSpectiltBack <<< params->CU.gS2D, params->CU.bS >>> ( & ( psi[m123 + m12] ), k, params_d, 1 );
@@ -1092,7 +839,7 @@ void applyMtfAndIncoherence ( cufftComplex* psi, int k, params_t* params, params
 	cufft_assert ( cufftExecC2C ( params->CU.cufftPlan, psi, psi, CUFFT_FORWARD ) );
 	cuda_assert ( cudaDeviceSynchronize () );
 
-	if ( ( params->IM.mode == 0 ) || ( params->IM.mode == 1 ) 
+	if ( ( params->IM.mode == 0 ) || ( params->IM.mode == 1 )
 		|| ( params->IM.mode == 2 ) || ( flag == 1 ) ){
 		multiplyMtf <<< params->CU.gS2D, params->CU.bS >>> ( psi, params_d, 1 );
 		cuda_assert ( cudaDeviceSynchronize () );

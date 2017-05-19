@@ -29,10 +29,9 @@ set(CMAKE_BUILD_TYPE Release)# set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-find_package(HDF5 REQUIRED)    
+  
 find_package(fftw3 REQUIRED)
 find_package(CUDA REQUIRED)
-find_package(Boost REQUIRED)
 
 include(${CMAKE_MODULE_PATH}/CheckComputeCapability.cmake)
 string(REPLACE " " ";" CUDA_CAPABILITY_LIST ${CUDA_CAPABILITY_INFO})
@@ -73,38 +72,28 @@ foreach(cuda_gpu ${CUDA_CAPABILITY_LIST})
 list(APPEND CUDA_NVCC_FLAGS "-gencode ${cuda_gpu}")
 endforeach(cuda_gpu)
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/Python")
+# add_subdirectory("${CMAKE_SOURCE_DIR}/Python")
 
 
-FILE(GLOB FDES_CU_FILES "${CMAKE_SOURCE_DIR}/src/complexMath.cu" "${CMAKE_SOURCE_DIR}/src/crystalMaker.cu" "${CMAKE_SOURCE_DIR}/src/FDES.cu" "${CMAKE_SOURCE_DIR}/src/multisliceSimulation.cu" "${CMAKE_SOURCE_DIR}/src/optimFunctions.cu"  "${CMAKE_SOURCE_DIR}/src/paramStructure.cu"  "${CMAKE_SOURCE_DIR}/src/projectedPotential.cu" "${CMAKE_SOURCE_DIR}/src/rwHdf5.cu"  "${CMAKE_SOURCE_DIR}/src/rwQsc.cu" "${CMAKE_SOURCE_DIR}/src/*.cpp")
+FILE(GLOB FDES_CU_FILES "${CMAKE_SOURCE_DIR}/src/*.cu""${CMAKE_SOURCE_DIR}/src/*.cpp")
 FILE(GLOB FDES_H_FILES "${CMAKE_SOURCE_DIR}/include/*.h")
-FILE(GLOB LIB_QSTEM_H_FILES "${CMAKE_SOURCE_DIR}/qstem-libs/*.h")
 include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${HDF5_C_INCLUDE_DIR})
 include_directories(${CUDA_TOOLKIT_INCLUDE})
-include_directories(${CMAKE_SOURCE_DIR}/qstem-libs)
 include_directories(${FFTW3_INCLUDE_DIRS})
-include_directories(${Boost_INCLUDE_DIR})
-
-link_directories(${CMAKE_SOURCE_DIR}/qstem-libs)
 link_directories(${FFTW3_LIBS})
 
-IF(CMAKE_BUILD_TYPE MATCHES Debug) 
-    link_directories(${HDF5_hdf5_LIBRARY_DEBUG})
- ELSEIF(CMAKE_BUILD_TYPE MATCHES Release)
-    link_directories(${HDF5_hdf5_LIBRARY_RELEASE})
- ELSE()
-    link_directories(${HDF5_hdf5_LIBRARY_RELEASE})
-ENDIF()
+
+
+ 
 
 CUDA_ADD_EXECUTABLE(FDES ${FDES_CU_FILES})
 
 if (WIN32)
-TARGET_LINK_LIBRARIES(FDES "qstem_libs" "cudart" "cufft" "cublas" "libfftw3-3" "hdf5" "libfftw3f-3")
+TARGET_LINK_LIBRARIES(FDES "cudart" "cufft" "cublas" "libfftw3-3" "libfftw3f-3")
 endif (WIN32)
 
 if(UNIX)
-TARGET_LINK_LIBRARIES(FDES ${CUDA_CUDART_LIBRARY} ${CUDA_cublas_LIBRARY} ${CUDA_cufft_LIBRARY} ${HDF5_hdf5_LIBRARY_RELEASE} ${CMAKE_SOURCE_DIR}/qstem-libs/libqstem_libs.so ${FFTW3_LIBS} ${FFTW3F_LIBS})
+TARGET_LINK_LIBRARIES(FDES ${CUDA_CUDART_LIBRARY} ${CUDA_cublas_LIBRARY} ${CUDA_cufft_LIBRARY} ${FFTW3_LIBS} ${FFTW3F_LIBS})
 endif(UNIX)
 
 

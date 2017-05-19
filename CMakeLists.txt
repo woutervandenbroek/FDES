@@ -30,7 +30,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
   
-find_package(fftw3 REQUIRED)
+# find_package(fftw3 REQUIRED)
 find_package(CUDA REQUIRED)
 
 include(${CMAKE_MODULE_PATH}/CheckComputeCapability.cmake)
@@ -79,8 +79,8 @@ FILE(GLOB FDES_CU_FILES "${CMAKE_SOURCE_DIR}/src/*.cu""${CMAKE_SOURCE_DIR}/src/*
 FILE(GLOB FDES_H_FILES "${CMAKE_SOURCE_DIR}/include/*.h")
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CUDA_TOOLKIT_INCLUDE})
-include_directories(${FFTW3_INCLUDE_DIRS})
-link_directories(${FFTW3_LIBS})
+#include_directories(${FFTW3_INCLUDE_DIRS})
+#link_directories(${FFTW3_LIBS})
 
 
 
@@ -89,11 +89,13 @@ link_directories(${FFTW3_LIBS})
 CUDA_ADD_EXECUTABLE(FDES ${FDES_CU_FILES})
 
 if (WIN32)
-TARGET_LINK_LIBRARIES(FDES "cudart" "cufft" "cublas" "libfftw3-3" "libfftw3f-3")
+#TARGET_LINK_LIBRARIES(FDES "cudart" "cufft" "cublas" "libfftw3-3" "libfftw3f-3")
+TARGET_LINK_LIBRARIES(FDES "cudart" "cufft" "cublas")
 endif (WIN32)
 
 if(UNIX)
-TARGET_LINK_LIBRARIES(FDES ${CUDA_CUDART_LIBRARY} ${CUDA_cublas_LIBRARY} ${CUDA_cufft_LIBRARY} ${FFTW3_LIBS} ${FFTW3F_LIBS})
+#TARGET_LINK_LIBRARIES(FDES ${CUDA_CUDART_LIBRARY} ${CUDA_cublas_LIBRARY} ${CUDA_cufft_LIBRARY} ${FFTW3_LIBS} ${FFTW3F_LIBS})
+TARGET_LINK_LIBRARIES(FDES ${CUDA_CUDART_LIBRARY} ${CUDA_cublas_LIBRARY} ${CUDA_cufft_LIBRARY})
 endif(UNIX)
 
 

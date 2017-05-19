@@ -29,8 +29,6 @@ set(CMAKE_BUILD_TYPE Release)# set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-  
-# find_package(fftw3 REQUIRED)
 find_package(CUDA REQUIRED)
 
 include(${CMAKE_MODULE_PATH}/CheckComputeCapability.cmake)
@@ -72,29 +70,20 @@ foreach(cuda_gpu ${CUDA_CAPABILITY_LIST})
 list(APPEND CUDA_NVCC_FLAGS "-gencode ${cuda_gpu}")
 endforeach(cuda_gpu)
 
-# add_subdirectory("${CMAKE_SOURCE_DIR}/Python")
-
 
 FILE(GLOB FDES_CU_FILES "${CMAKE_SOURCE_DIR}/src/*.cu""${CMAKE_SOURCE_DIR}/src/*.cpp")
 FILE(GLOB FDES_H_FILES "${CMAKE_SOURCE_DIR}/include/*.h")
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CUDA_TOOLKIT_INCLUDE})
-#include_directories(${FFTW3_INCLUDE_DIRS})
-#link_directories(${FFTW3_LIBS})
 
-
-
- 
 
 CUDA_ADD_EXECUTABLE(FDES ${FDES_CU_FILES})
 
 if (WIN32)
-#TARGET_LINK_LIBRARIES(FDES "cudart" "cufft" "cublas" "libfftw3-3" "libfftw3f-3")
 TARGET_LINK_LIBRARIES(FDES "cudart" "cufft" "cublas")
 endif (WIN32)
 
 if(UNIX)
-#TARGET_LINK_LIBRARIES(FDES ${CUDA_CUDART_LIBRARY} ${CUDA_cublas_LIBRARY} ${CUDA_cufft_LIBRARY} ${FFTW3_LIBS} ${FFTW3F_LIBS})
 TARGET_LINK_LIBRARIES(FDES ${CUDA_CUDART_LIBRARY} ${CUDA_cublas_LIBRARY} ${CUDA_cufft_LIBRARY})
 endif(UNIX)
 

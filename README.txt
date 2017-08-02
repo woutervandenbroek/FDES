@@ -27,21 +27,22 @@ algorithm with increased effciency of the computation of the
 projected potential. Ultramicroscopy (2015). 
 doi:10.1016/j.ultramic.2015.07.005
 
-Email: wouter.vandenbroek@uni-ulm.de, wouter.vandenbroek1@gmail.com,
+Email: vandenbroek@physik.hu-berlin.de, wouter.vandenbroek1@gmail.com,
        xiaoming.jiang@uni-ulm.de, jiang.xiaoming1984@gmail.com
 
-Address: Institut for Experimentel Physics
-         Ulm University
-         Albert-Einstein-Allee 11
-         89081 Ulm
-         Germany
+Address: Room 3'307
+         Lise Meitner Building
+         AG SEM
+         Institut für Physik
+         Humboldt Universität zu Berlin
+         Tel: +49 (0)30 2093 7937
 
 ====================================================================
 
              
   Steps of FDES building
   
-  0. For the FDES light version the libraries boost, hdf5 and qstem-libs are not required. The program only reads input from the text file "Params.cnf" and writes the result as raw 8-bit floats under the name "Measurements.bin". Furthermore, no DLL can be built anymore and no python scripts are supported. But STEM functionality has been added directly into FDES light.
+  0. For the FDES light version the libraries boost, , fftw3, hdf5 and qstem-libs are not required. The program only reads input from the text file "Params.cnf" and writes the result as raw 8-bit floats under the name "Measurements.bin". Furthermore, no DLL can be built anymore and no python scripts are supported. But STEM functionality has been added directly into FDES light.
   
   1. install required libraries with suggested versions: cmake 2.8, fftw 3.2.2, boost 1.53, hdf5 1.8.11, CUDA 5.0 
   

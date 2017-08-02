@@ -783,7 +783,7 @@ void incomingWave( cufftComplex* psi, params_t* params, params_t* params_d, int 
 		cublas_assert( cublasCsscal( params->CU.cublasHandle, m12, &alpha, psi, 1 ) );
 	}
 	if ( params->IM.doBeamTilt ) {
-		tiltBeam_d <<< params->CU.gS, params->CU.bS >>> ( psi, k, params_d, 1 );
+		tiltBeam_d <<< gS, bS >>> ( psi, k, params_d, 1 );
 	}
 }
 

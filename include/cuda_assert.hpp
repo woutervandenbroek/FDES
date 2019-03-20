@@ -14,7 +14,7 @@
 
 #else
 
-extern "C"int printf( const char* __restrict, ... );
+extern "C" int printf( const char* __restrict, ... );
 
 struct cuda_result_assert
 {
